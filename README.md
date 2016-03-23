@@ -28,11 +28,11 @@ nin = NetworkInNetwork()
 InputBatch(train="data/train.txt",
 			val="data/test.txt")
 
-def trainer(x,t):
+def workout(x,t):
 	nin.classify(x)	
 	return nin.loss(t)
 
-BatchTrain(trainer)
+BatchTrain(workout)
 ```
 
 ####CNN-LSTM trainer (not yet)
@@ -42,12 +42,13 @@ RNN = LSTM()
 
 InputBatch(train='train.tsv',
 			test='test.tsv')
-BatchTrain(lambda x,t:
+def workout(x,t):
 	Input(x)
 	CNN.classify() 
 	RNN.forward()
 	return CNN.loss(t)
-,epoch=500)
+
+BatchTrain(epoch=500)
 ```
 
 ####CNN-DQN with Unity (not yet)
@@ -55,7 +56,7 @@ BatchTrain(lambda x,t:
 CNN = GoogLeNet()
 DQN = DeepQLearning()
 
-StreamTrain(lambda:
+def workout():
 	#Realtime input image from Unity
 	InputStream('unity.png') 
 	CNN.classify() 
@@ -64,6 +65,7 @@ StreamTrain(lambda:
 	#Get score or loss from Unity game
 	t = InputVarsFromUnity()
 	return DQN.reinforcement(t)
-)
+
+StreamTrain(workout)
 ```
 
