@@ -30,7 +30,7 @@ InputBatch(train="data/train.txt",
 
 def workout(x,t):
 	nin.classify(x)	
-	return nin.loss(t)
+	nin.backprop(t)
 
 BatchTrain(workout)
 ```
@@ -46,7 +46,7 @@ def workout(x,t):
 	Input(x)
 	CNN.classify() 
 	RNN.forward()
-	return CNN.loss(t)
+	RNN.backprop(t)
 
 BatchTrain(epoch=500)
 ```
@@ -64,7 +64,7 @@ def workout():
 
 	#Get score or loss from Unity game
 	t = InputVarsFromUnity()
-	return DQN.reinforcement(t)
+	DQN.reinforcement(t)
 
 StreamTrain(workout)
 ```
