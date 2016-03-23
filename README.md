@@ -3,6 +3,8 @@ Deel; A High level deep neural network description language.
 
 ***Under construction***
 
+![logo](deel.png)
+
 ## Goal
 Describe deep neural network, training and using in simple syntax.
 

@@ -111,8 +111,3 @@ def CNN_Caffemodel(	model='bvlc_googlenet.caffemodel',
 	t.use()
 	return t
 
-
-
-Input("deel.png")
-CNN_Caffemodel()
-print Tensor.context.shape
