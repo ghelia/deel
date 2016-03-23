@@ -1,7 +1,7 @@
 # Deel
 Deel; A High level deep neural network description language.
 
-***Under construction***
+*Now Under construction*
 
 ![logo](deel.png)
 
