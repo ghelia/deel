@@ -25,9 +25,9 @@ Show()
 ```python
 CNN = GoogLeNet()
 
-InputStream(train='train.tsv',
+InputBatch(train='train.tsv',
 			test='test.tsv')
-Train(lambda x,t:
+BatchTrain(lambda x,t:
 	CNN.classify(x)
 	return CNN.loss(t)
 )
@@ -38,9 +38,9 @@ Train(lambda x,t:
 CNN = GoogLeNet()
 RNN = LSTM()
 
-InputStream(train='train.tsv',
+InputBatch(train='train.tsv',
 			test='test.tsv')
-Train(lambda x,t:
+BatchTrain(lambda x,t:
 	Input(x)
 	CNN.classify() 
 	RNN.forward()
@@ -53,9 +53,9 @@ Train(lambda x,t:
 CNN = GoogLeNet()
 DQN = DeepQLearning()
 
-Train(lambda:
+StreamTrain(lambda:
 	#Realtime input image from Unity
-	InputVision('unity.png') 
+	InputStream('unity.png') 
 	CNN.classify() 
 	DQN.forward()
 
@@ -64,3 +64,4 @@ Train(lambda:
 	return DQN.reinforcement(t)
 )
 ```
+
