@@ -11,7 +11,7 @@ Describe deep neural network, training and using in simple syntax.
 
 ###Examples
 
-####CNN classifier
+####CNN classifier (done)
 ```python
 CNN = GoogLeNet()
 
@@ -21,7 +21,7 @@ Show()
 
 ```
 
-####CNN trainer
+####CNN trainer (now coding)
 ```python
 CNN = GoogLeNet()
 
@@ -33,7 +33,7 @@ Train(lambda x,t:
 )
 ```
 
-####CNN-LSTM trainer
+####CNN-LSTM trainer (not yet)
 ```python
 CNN = GoogLeNet()
 RNN = LSTM()
@@ -46,4 +46,21 @@ Train(lambda x,t:
 	RNN.forward()
 	return CNN.loss(t)
 ,epoch=500)
+```
+
+####CNN-DQN with Unity (not yet)
+```python
+CNN = GoogLeNet()
+DQN = DeepQLearning()
+
+Train(lambda:
+	#Realtime input image from Unity
+	InputVision('unity.png') 
+	CNN.classify() 
+	DQN.forward()
+
+	#Get score or loss from Unity game
+	t = InputVarsFromUnity()
+	return DQN.reinforcement(t)
+)
 ```
