@@ -5,4 +5,4 @@ CNN = GoogLeNet()
 
 Input("deel.png")
 CNN.classify()
-Output()
+Show()

@@ -9,37 +9,58 @@ import pickle
 import cv2
 import hashlib
 
-class Tensor():
+class Tensor(object):
 	""" A tensor """
 
 	context = None
 
 	def __init__(	self,value=np.array([1], dtype=np.float32),
-					category='number',comment=''):
+					category='scalar',comment=''):
 		self.content = value
-
-		if category == 'image':
-			value = np.asarray(value).transpose(2, 0, 1)
-		elif category == 'chainer.Variable':
-			value = value.data
-
 		self.shape = value.shape
 		self.value = value
 		self.comment = comment
 		self.output = None
-		self.category = category
-
 	def use(self):
 		Tensor.context = self
 	def show(self):
-		if self.category == 'image':
-			tmp = self.get()
-			img = Image.fromarray(tmp)
-			img.show()
+			print self.get()
 	def get(self):
-		if self.category == 'image':
-			return	self.value.transpose(1, 2, 0)
 		return self.value
+
+class ImageTensor(Tensor):
+	def __init__(	self,x,comment=''):
+		super(ImageTensor,self).__init__(
+				np.asarray(x).transpose(2, 0, 1),
+				comment=comment)
+		self.content = x
+	def get(self):
+		return	self.value.transpose(1, 2, 0)
+	def show(self):
+		tmp = self.get()
+		img = Image.fromarray(tmp)
+		img.show()
+
+
+class ChainerTensor(Tensor):
+	def __init__(	self,x,comment=''):
+		super(ChainerTensor,self).__init__(
+				x.data,
+				comment=comment)
+		self.content = x
+
+class LabelTensor(Tensor):
+	def __init__(	self,x,labels,comment=''):
+		super(LabelTensor,self).__init__(
+				x,
+				comment=comment)
+		out=zip(self.value.tolist(), labels)
+		out.sort(cmp=lambda a, b: cmp(a[0], b[0]), reverse=True)
+		self.content = out
+	def show(self,num_of_candidate=5):
+		for rank, (score, name) in enumerate(self.content[:num_of_candidate], start=1):
+			print('#%d | %s | %4.1f%%' % (rank, name, score * 100))	
+
 
 
 
@@ -49,7 +70,7 @@ def Input(x):
 		root, ext = os.path.splitext(x)
 		if ext=='.png' or ext=='.jpg' or ext=='.jpeg' or ext=='.gif':
 			img = Image.open(x)
-			t = Tensor(value=img,category='image')
+			t = ImageTensor(img)
 			t.use()
 		elif ext=='.txt':
 			print "this is txt"
@@ -156,11 +177,17 @@ class GoogLeNet(ImageNet):
 		x_batch[0]=image
 
 		x = Variable(x_batch, volatile=True)
-		t = Tensor(self.predict(x).data[0])
+		t = LabelTensor(self.predict(x).data[0],self.labels)
 		t.use()
-		t.output=zip(t.value.tolist(), self.labels)
 
 		return t
+
+def Show(x=None):
+	if x==None:
+		x = Tensor.context
+
+	x.show()
+
 
 
 def Output(x=None,num_of_candidate=5):
