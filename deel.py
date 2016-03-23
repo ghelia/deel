@@ -64,7 +64,7 @@ class ImageTensor(Tensor):
 		image = ImageNet.filter(np.asarray(x))
 
 		x_batch = np.ndarray(
-		        (1, 3, ImageNet.in_size,ImageNet.in_size), dtype=np.float32)
+				(1, 3, ImageNet.in_size,ImageNet.in_size), dtype=np.float32)
 		x_batch[0]=image
 
 		self.value=x_batch
@@ -134,6 +134,210 @@ class Network(object):
 		return self.name
 
 '''
+	Trainer
+'''
+class Trainer(object):
+	batchsize=32
+	val_batchsize=250
+	data_q=None
+	res_q=None
+	loaderjob=20
+	train_list=''
+	val_list=''
+	def __init__(self,name,in_size=256):
+		super(ImageNet,self).__init__(name)
+		self.batchsize = 32
+		self.val_batchsize = 250
+		self.data_q = queue.Queue(maxsize=1)
+		self.res_q = queue.Queue()
+		self.loaderjob=20
+
+	def load(path, root):
+		tuples = []
+		for line in open(path):
+			pair = line.strip().split()
+			tuples.append((os.path.join(root, pair[0]), np.int32(pair[1])))
+		return tuples
+
+	def feed_data():
+		# Data feeder
+		i = 0
+		count = 0
+		insize = self.in_size
+		batchsize = self.batchsize
+		val_batchsize = self.val_batchsize
+		train_list = self.train_list
+
+		x_batch = np.ndarray(
+			(batchsize, 3, insize, insize), dtype=np.float32)
+		y_batch = np.ndarray((batchsize,), dtype=np.int32)
+		val_x_batch = np.ndarray(
+			(val_batchsize, 3, insize, insize), dtype=np.float32)
+		val_y_batch = np.ndarray((val_batchsize,), dtype=np.int32)
+
+		batch_pool = [None] * batchsize
+		val_batch_pool = [None] * val_batchsize
+		pool = multiprocessing.Pool(self.loaderjob)
+		self.data_q.put('train')
+		for epoch in six.moves.range(1, 1 + args.epoch):
+			print('epoch', epoch)
+			print('learning rate', optimizer.lr)
+			perm = np.random.permutation(len(train_list))
+			for idx in perm:
+				path, label = train_list[idx]
+				batch_pool[i] = pool.apply_async(read_image, (path, False, True))
+				y_batch[i] = label
+				i += 1
+
+				if i == args.batchsize:
+					for j, x in enumerate(batch_pool):
+						x_batch[j] = x.get()
+					self.data_q.put((x_batch.copy(), y_batch.copy()))
+					i = 0
+
+				count += 1
+				if count % denominator == 0:
+					self.data_q.put('val')
+					j = 0
+					for path, label in val_list:
+						val_batch_pool[j] = pool.apply_async(
+							read_image, (path, True, False))
+						val_y_batch[j] = label
+						j += 1
+
+						if j == args.val_batchsize:
+							for k, x in enumerate(val_batch_pool):
+								val_x_batch[k] = x.get()
+							self.data_q.put((val_x_batch.copy(), val_y_batch.copy()))
+							j = 0
+					self.data_q.put('train')
+
+			optimizer.lr *= 0.97
+		pool.close()
+		pool.join()
+		self.data_q.put('end')
+
+	def log_result():
+		# Logger
+		train_count = 0
+		train_cur_loss = 0
+		train_cur_accuracy = 0
+		begin_at = time.time()
+		val_begin_at = None
+		while True:
+			result = self.res_q.get()
+			if result == 'end':
+				break
+			elif result == 'train':
+				train = True
+				if val_begin_at is not None:
+					begin_at += time.time() - val_begin_at
+					val_begin_at = None
+				continue
+			elif result == 'val':
+				train = False
+				val_count = val_loss = val_accuracy = 0
+				val_begin_at = time.time()
+				continue
+
+			loss, accuracy = result
+			if train:
+				train_count += 1
+				duration = time.time() - begin_at
+				throughput = train_count * args.batchsize / duration
+				sys.stderr.write(
+					'\rtrain {} updates ({} samples) time: {} ({} images/sec)'
+					.format(train_count, train_count * args.batchsize,
+							datetime.timedelta(seconds=duration), throughput))
+
+				train_cur_loss += loss
+				train_cur_accuracy += accuracy
+				if train_count % 1000 == 0:
+					mean_loss = train_cur_loss / 1000
+					mean_error = 1 - train_cur_accuracy / 1000
+					print(json.dumps({'type': 'train', 'iteration': train_count,
+									  'error': mean_error, 'loss': mean_loss}))
+					sys.stdout.flush()
+					train_cur_loss = 0
+					train_cur_accuracy = 0
+			else:
+				val_count += args.val_batchsize
+				duration = time.time() - val_begin_at
+				throughput = val_count / duration
+				sys.stderr.write(
+					'\rval   {} batches ({} samples) time: {} ({} images/sec)'
+					.format(val_count / args.val_batchsize, val_count,
+							datetime.timedelta(seconds=duration), throughput))
+
+				val_loss += loss
+				val_accuracy += accuracy
+				if val_count == 50000:
+					mean_loss = val_loss * args.val_batchsize / 50000
+					mean_error = 1 - val_accuracy * args.val_batchsize / 50000
+					print(json.dumps({'type': 'val', 'iteration': train_count,
+									  'error': mean_error, 'loss': mean_loss}))
+					sys.stdout.flush()
+
+
+	def train_loop():
+		while True:
+			while self.data_q.empty():
+				time.sleep(0.1)
+			inp = self.data_q.get()
+			if inp == 'end':  # quit
+				self.res_q.put('end')
+				break
+			elif inp == 'train':  # restart training
+				self.res_q.put('train')
+				model.train = True
+				continue
+			elif inp == 'val':  # start validation
+				self.res_q.put('val')
+				serializers.save_npz(args.out, self.func)
+				serializers.save_npz(args.outstate, optimizer)
+				self.func.train = False
+				continue
+
+			volatile = 'off' if self.func.train else 'on'
+			x = chainer.Variable(xp.asarray(inp[0]), volatile=volatile)
+			t = chainer.Variable(xp.asarray(inp[1]), volatile=volatile)
+
+			loss,accuracy = self.workout(x,t)
+			loss.backward()
+			optimizer.update()
+
+
+			self.res_q.put((float(loss.data), float(accuracy.data)))
+			del x, t
+
+
+	def train(workout):
+		deel = Deel.getInstance()
+		self.train_list = load_image_list(deel.train,deel.root)
+		self.val_list = load_image_list(deel.validation,deel.root)
+
+		if optimizer == None:
+			self.optimizer = optimizers.MomentumSGD(lr=0.01, momentum=0.9)
+		self.optimizer.setup(self.func)
+
+		feeder = threading.Thread(target=feed_data)
+		feeder.daemon = True
+		feeder.start()
+		logger = threading.Thread(target=log_result)
+		logger.daemon = True
+		logger.start()	
+
+		self.workout = workout
+
+		self.train_loop()
+		self.feeder.join()
+		self.logger.join()
+
+
+
+
+
+'''
 	ImageNet
 '''
 class ImageNet(Network):
@@ -142,11 +346,6 @@ class ImageNet(Network):
 	def __init__(self,name,in_size=256):
 		super(ImageNet,self).__init__(name)
 		ImageNet.in_size = in_size
-		self.batchsize = 32
-		self.val_batchsize = 250
-		self.data_q = queue.Queue(maxsize=1)
-		self.res_q = queue.Queue()
-		self.loaderjob=20
 
 	@staticmethod
 	def filter(image):
@@ -161,9 +360,9 @@ class ImageNet(Network):
 		new_height = output_side_length
 		new_width = output_side_length
 		if height > width:
-		 	new_height = output_side_length * height / width
+			new_height = output_side_length * height / width
 		else:
-		 	new_width = output_side_length * width / height
+			new_width = output_side_length * width / height
 		resized_img = cv2.resize(image, (new_width, new_height))
 		height_offset = (new_height - output_side_length) / 2
 		width_offset = (new_width - output_side_length) / 2
@@ -176,183 +375,27 @@ class ImageNet(Network):
 
 		return image
 
-	def load_image_list(path, root):
-	    tuples = []
-	    for line in open(path):
-	        pair = line.strip().split()
-	        tuples.append((os.path.join(root, pair[0]), np.int32(pair[1])))
-	    return tuples
 
 	def read_image(path, center=False, flip=False):
-	    # Data loading routine
-	    image = np.asarray(Image.open(path)).transpose(2, 0, 1)
-	    if center:
-	        top = left = cropwidth / 2
-	    else:
-	        top = random.randint(0, cropwidth - 1)
-	        left = random.randint(0, cropwidth - 1)
-	    bottom = model.insize + top
-	    right = model.insize + left
+		# Data loading routine
+		image = np.asarray(Image.open(path)).transpose(2, 0, 1)
+		if center:
+			top = left = cropwidth / 2
+		else:
+			top = random.randint(0, cropwidth - 1)
+			left = random.randint(0, cropwidth - 1)
+		bottom = model.insize + top
+		right = model.insize + left
 
-	    image = image[:, top:bottom, left:right].astype(np.float32)
-	    image -= mean_image[:, top:bottom, left:right]
-	    image /= 255
-	    if flip and random.randint(0, 1) == 0:
-	        return image[:, :, ::-1]
-	    else:
-	        return image
+		image = image[:, top:bottom, left:right].astype(np.float32)
+		image -= mean_image[:, top:bottom, left:right]
+		image /= 255
+		if flip and random.randint(0, 1) == 0:
+			return image[:, :, ::-1]
+		else:
+			return image
 
-	def feed_data():
-	    # Data feeder
-	    i = 0
-	    count = 0
-	    insize = self.in_size
-	    batchsize = self.batchsize
-	    val_batchsize = self.val_batchsize
-	    train_list = self.train_list
-
-	    x_batch = np.ndarray(
-	        (batchsize, 3, insize, insize), dtype=np.float32)
-	    y_batch = np.ndarray((batchsize,), dtype=np.int32)
-	    val_x_batch = np.ndarray(
-	        (val_batchsize, 3, insize, insize), dtype=np.float32)
-	    val_y_batch = np.ndarray((val_batchsize,), dtype=np.int32)
-
-	    batch_pool = [None] * batchsize
-	    val_batch_pool = [None] * val_batchsize
-	    pool = multiprocessing.Pool(self.loaderjob)
-	    self.data_q.put('train')
-	    for epoch in six.moves.range(1, 1 + args.epoch):
-	        print('epoch', epoch)
-	        print('learning rate', optimizer.lr)
-	        perm = np.random.permutation(len(train_list))
-	        for idx in perm:
-	            path, label = train_list[idx]
-	            batch_pool[i] = pool.apply_async(read_image, (path, False, True))
-	            y_batch[i] = label
-	            i += 1
-
-	            if i == args.batchsize:
-	                for j, x in enumerate(batch_pool):
-	                    x_batch[j] = x.get()
-	                self.data_q.put((x_batch.copy(), y_batch.copy()))
-	                i = 0
-
-	            count += 1
-	            if count % denominator == 0:
-	                self.data_q.put('val')
-	                j = 0
-	                for path, label in val_list:
-	                    val_batch_pool[j] = pool.apply_async(
-	                        read_image, (path, True, False))
-	                    val_y_batch[j] = label
-	                    j += 1
-
-	                    if j == args.val_batchsize:
-	                        for k, x in enumerate(val_batch_pool):
-	                            val_x_batch[k] = x.get()
-	                        self.data_q.put((val_x_batch.copy(), val_y_batch.copy()))
-	                        j = 0
-	                self.data_q.put('train')
-
-	        optimizer.lr *= 0.97
-	    pool.close()
-	    pool.join()
-	    self.data_q.put('end')
-
-	def log_result():
-	    # Logger
-	    train_count = 0
-	    train_cur_loss = 0
-	    train_cur_accuracy = 0
-	    begin_at = time.time()
-	    val_begin_at = None
-	    while True:
-	        result = self.res_q.get()
-	        if result == 'end':
-	            break
-	        elif result == 'train':
-	            train = True
-	            if val_begin_at is not None:
-	                begin_at += time.time() - val_begin_at
-	                val_begin_at = None
-	            continue
-	        elif result == 'val':
-	            train = False
-	            val_count = val_loss = val_accuracy = 0
-	            val_begin_at = time.time()
-	            continue
-
-	        loss, accuracy = result
-	        if train:
-	            train_count += 1
-	            duration = time.time() - begin_at
-	            throughput = train_count * args.batchsize / duration
-	            sys.stderr.write(
-	                '\rtrain {} updates ({} samples) time: {} ({} images/sec)'
-	                .format(train_count, train_count * args.batchsize,
-	                        datetime.timedelta(seconds=duration), throughput))
-
-	            train_cur_loss += loss
-	            train_cur_accuracy += accuracy
-	            if train_count % 1000 == 0:
-	                mean_loss = train_cur_loss / 1000
-	                mean_error = 1 - train_cur_accuracy / 1000
-	                print(json.dumps({'type': 'train', 'iteration': train_count,
-	                                  'error': mean_error, 'loss': mean_loss}))
-	                sys.stdout.flush()
-	                train_cur_loss = 0
-	                train_cur_accuracy = 0
-	        else:
-	            val_count += args.val_batchsize
-	            duration = time.time() - val_begin_at
-	            throughput = val_count / duration
-	            sys.stderr.write(
-	                '\rval   {} batches ({} samples) time: {} ({} images/sec)'
-	                .format(val_count / args.val_batchsize, val_count,
-	                        datetime.timedelta(seconds=duration), throughput))
-
-	            val_loss += loss
-	            val_accuracy += accuracy
-	            if val_count == 50000:
-	                mean_loss = val_loss * args.val_batchsize / 50000
-	                mean_error = 1 - val_accuracy * args.val_batchsize / 50000
-	                print(json.dumps({'type': 'val', 'iteration': train_count,
-	                                  'error': mean_error, 'loss': mean_loss}))
-	                sys.stdout.flush()
-
-
-	def train_loop():
-	    while True:
-	        while self.data_q.empty():
-	            time.sleep(0.1)
-	        inp = self.data_q.get()
-	        if inp == 'end':  # quit
-	            self.res_q.put('end')
-	            break
-	        elif inp == 'train':  # restart training
-	            self.res_q.put('train')
-	            model.train = True
-	            continue
-	        elif inp == 'val':  # start validation
-	            self.res_q.put('val')
-	            serializers.save_npz(args.out, self.func)
-	            serializers.save_npz(args.outstate, optimizer)
-	            self.func.train = False
-	            continue
-
-	        volatile = 'off' if self.func.train else 'on'
-	        x = chainer.Variable(xp.asarray(inp[0]), volatile=volatile)
-	        t = chainer.Variable(xp.asarray(inp[1]), volatile=volatile)
-
-	        if self.func.train:
-	            optimizer.update(self.func, x, t)
-	        else:
-	            self.func(x, t)
-
-	        self.res_q.put((float(self.func.loss.data), float(self.func.accuracy.data)))
-	        del x, t
-
+	
 '''
 	GoogLeNet by Caffenet 
 '''
@@ -423,15 +466,6 @@ class NetworkInNetwork(ImageNet):
 
 		self.labels = np.loadtxt("misc/"+labels, str, delimiter="\t")
 
-	def trainer(self,optimizer=None):
-		deel = Deel.getInstance()
-		self.train_list = load_image_list(deel.train,deel.root)
-		self.val_list = load_image_list(deel.train,deel.root)
-
-		if optimizer == None:
-			optimizer = optimizers.MomentumSGD(lr=0.01, momentum=0.9)
-		optimizer.setup(self.func)
-
 
 	def forward(self,x):
 		y = self.func.forward()
@@ -459,6 +493,9 @@ class NetworkInNetwork(ImageNet):
 		return t
 
 
+def Train(workout):
+	trainer = Trainer()
+	trainer.train(workout)
 
 
 

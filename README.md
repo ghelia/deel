@@ -29,7 +29,7 @@ InputStream(train='train.tsv',
 			test='test.tsv')
 Train(lambda x,t:
 	CNN.classify(x)
-	CNN.loss(x,t)
+	return CNN.loss(t)
 )
 ```
 
@@ -44,6 +44,6 @@ Train(lambda x,t:
 	Input(x)
 	CNN.classify() 
 	RNN.forward()
-	CNN.loss(t)
+	return CNN.loss(t)
 ,epoch=500)
 ```
