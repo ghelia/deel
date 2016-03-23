@@ -26,6 +26,7 @@ class Tensor():
 		self.shape = value.shape
 		self.value = value
 		self.comment = comment
+		self.output = None
 		self.category = category
 
 	def use(self):
@@ -55,59 +56,81 @@ def Input(x):
 
 	return t
 
-def CNN_Caffemodel(	model='bvlc_googlenet.caffemodel',
+class GoogLeNet:
+	def __init__(self,model='bvlc_googlenet.caffemodel',
 					mean='ilsvrc_2012_mean.npy',
-					label='labels.txt'):
-	root, ext = os.path.splitext(model)
-	cashnpath = 'cash/'+hashlib.sha224(root).hexdigest()+".pkl"
-	if os.path.exists(cashnpath):
-		func = pickle.load(open(cashnpath,'rb'))
-	else:
-		func = caffe.CaffeFunction('misc/'+model)
-		pickle.dump(func, open(cashnpath, 'wb'))
-	mean_image = np.ndarray((3, 256, 256), dtype=np.float32)
-	mean_image[0] = 104
-	mean_image[1] = 117
-	mean_image[2] = 123
+					labels='labels.txt'):
+		root, ext = os.path.splitext(model)
+		cashnpath = 'cash/'+hashlib.sha224(root).hexdigest()+".pkl"
+		if os.path.exists(cashnpath):
+			self.func = pickle.load(open(cashnpath,'rb'))
+		else:
+			self.func = caffe.CaffeFunction('misc/'+model)
+			pickle.dump(func, open(cashnpath, 'wb'))
+		self.mean_image = np.ndarray((3, 256, 256), dtype=np.float32)
+		self.mean_image[0] = 104
+		self.mean_image[1] = 117
+		self.mean_image[2] = 123
 
-	image = Tensor.context.get()
+		self.labels = np.loadtxt("misc/"+labels, str, delimiter="\t")
 
-	in_size = 224
-	cropwidth = 256 - in_size
-	start = cropwidth // 2
-	stop = start + in_size
-	mean_image = mean_image[:, start:stop, start:stop].copy()
-	target_shape = (256, 256)
-	output_side_length=256
-
-	height, width, depth = image.shape
-	new_height = output_side_length
-	new_width = output_side_length
-	if height > width:
-	  new_height = output_side_length * height / width
-	else:
-	  new_width = output_side_length * width / height
-	resized_img = cv2.resize(image, (new_width, new_height))
-	height_offset = (new_height - output_side_length) / 2
-	width_offset = (new_width - output_side_length) / 2
-	image= resized_img[height_offset:height_offset + output_side_length,
-	width_offset:width_offset + output_side_length]
-
-	image = image.transpose(2, 0, 1)
-	image = image[:, start:stop, start:stop].astype(np.float32)
-	image -= mean_image
-
-	x_batch = np.ndarray(
-	        (1, 3, in_size,in_size), dtype=np.float32)
-	x_batch[0]=image
-
-	x = Variable(x_batch, volatile=True)
-	def predict(x):
-		y, = func(inputs={'data': x}, outputs=['loss3/classifier'],
+	def _predict(self,x):
+		y, = self.func(inputs={'data': x}, outputs=['loss3/classifier'],
 					disable=['loss1/ave_pool', 'loss2/ave_pool'],
 					train=False)
 		return F.softmax(y)
-	t = Tensor(predict(x).data[0])
-	t.use()
-	return t
+
+	def classify(self,x=None):
+		if x==None:
+			x=Tensor.context.get()
+
+		image = x
+
+		in_size = 224
+		cropwidth = 256 - in_size
+		start = cropwidth // 2
+		stop = start + in_size
+		mean_image = self.mean_image[:, start:stop, start:stop].copy()
+		target_shape = (256, 256)
+		output_side_length=256
+
+		height, width, depth = image.shape
+		new_height = output_side_length
+		new_width = output_side_length
+		if height > width:
+		  new_height = output_side_length * height / width
+		else:
+		  new_width = output_side_length * width / height
+		resized_img = cv2.resize(image, (new_width, new_height))
+		height_offset = (new_height - output_side_length) / 2
+		width_offset = (new_width - output_side_length) / 2
+		image= resized_img[height_offset:height_offset + output_side_length,
+		width_offset:width_offset + output_side_length]
+
+		image = image.transpose(2, 0, 1)
+		image = image[:, start:stop, start:stop].astype(np.float32)
+		image -= mean_image
+
+		x_batch = np.ndarray(
+		        (1, 3, in_size,in_size), dtype=np.float32)
+		x_batch[0]=image
+
+		x = Variable(x_batch, volatile=True)
+		t = Tensor(self._predict(x).data[0])
+		t.use()
+		t.output=zip(t.value.tolist(), self.labels)
+
+		return t
+
+
+def Output(x=None,num_of_candidate=5):
+	if x==None:
+		x = Tensor.context
+
+	out = x.output
+
+	out.sort(cmp=lambda a, b: cmp(a[0], b[0]), reverse=True)
+	for rank, (score, name) in enumerate(out[:num_of_candidate], start=1):
+		print('#%d | %s | %4.1f%%' % (rank, name, score * 100))
+
 

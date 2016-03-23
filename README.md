@@ -1,30 +1,34 @@
-# deel
+# Deel
 Deel; A High level deep neural network description language.
 
 ***Under construction***
 
 ![logo](deel.png)
 
+
 ## Goal
 Describe deep neural network, training and using in simple syntax.
 
 examples
 
-*CNN classifier
+####CNN classifier
 ```python
-Input(“hoge.png”) 
-CNN.caffenet() 
-Output() 
+CNN = GoogLeNet()
+
+Input("deel.png")
+CNN.classify()
+Output()
+
 ```
 
-*CNN trainer
+####CNN trainer
 ```python
 Input('dataset.py') 
 CNN.caffenet() 
-Output() 
+Train() 
 ```
 
-*CNN-LSTM trainer
+####CNN-LSTM trainer
 ```python
 Input('dataset.py') 
 CNN.caffenet() 

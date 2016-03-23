@@ -1,6 +1,8 @@
 
 from deel import *
 
+CNN = GoogLeNet()
+
 Input("deel.png")
-CNN_Caffemodel()
-print Tensor.context.shape
+CNN.classify()
+Output()
