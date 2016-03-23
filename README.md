@@ -23,14 +23,16 @@ Show()
 
 ####CNN trainer (now coding)
 ```python
-CNN = GoogLeNet()
+nin = NetworkInNetwork()
 
-InputBatch(train='train.tsv',
-			test='test.tsv')
-BatchTrain(lambda x,t:
-	CNN.classify(x)
-	return CNN.loss(t)
-)
+InputBatch(train="data/train.txt",
+			val="data/test.txt")
+
+def trainer(x,t):
+	nin.classify(x)	
+	return nin.loss(t)
+
+BatchTrain(trainer)
 ```
 
 ####CNN-LSTM trainer (not yet)

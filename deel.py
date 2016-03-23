@@ -21,18 +21,20 @@ import sys
 
 class Deel(object):
 	singlton = None
+	train = None
+	val = None
+	root = '.'
 	def __init__(self):
 		self.singleton = self
-
-		self.train = None
-		self.test = None
-		self.val = None
-		self.root = "."
 
 
 	@staticmethod
 	def getInstance():
 		return Deel.singleton
+
+def InputBatch(train=None,val=None):
+	Deel.train = train
+	Deel.val = val
 
 class Tensor(object):
 	""" A tensor """
@@ -136,7 +138,7 @@ class Network(object):
 '''
 	Trainer
 '''
-class Trainer(object):
+class BatchTrainer(object):
 	batchsize=32
 	val_batchsize=250
 	data_q=None
@@ -446,15 +448,6 @@ class NetworkInNetwork(ImageNet):
 	def __init__(self,
 					labels='labels.txt'):
 		super(NetworkInNetwork,self).__init__('NetworkInNetwork')
-		'''
-		root, ext = os.path.splitext(model)
-		cashnpath = 'cash/'+hashlib.sha224(root).hexdigest()+".pkl"
-		if os.path.exists(cashnpath):
-			self.func = pickle.load(open(cashnpath,'rb'))
-		else:
-			self.func = caffe.CaffeFunction('misc/'+model)
-			pickle.dump(func, open(cashnpath, 'wb'))
-		'''
 
 		self.func = model.nin.NIN()
 
