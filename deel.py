@@ -56,10 +56,72 @@ def Input(x):
 
 	return t
 
-class GoogLeNet:
+class Network(object):
+	def __init__(self,name):
+		self.name=name
+		self.func=None
+	def predict(self,x):
+		'''
+			Forward neural Network to prediction
+		'''
+		return None
+	def classify(self,x=None):
+		'''
+			Classify x
+		'''
+		return None
+	def trainer(self):
+		'''
+			Trainer for neural network
+		'''
+		return None
+	def __str__(self):
+		return self.name
+
+'''
+	ImageNet
+'''
+class ImageNet(Network):
+	def __init__(self,name):
+		super(ImageNet,self).__init__(name)
+
+	def _filter(self,image):
+		cropwidth = 256 - self.in_size
+		start = cropwidth // 2
+		stop = start + self.in_size
+		mean_image = self.mean_image[:, start:stop, start:stop].copy()
+		target_shape = (256, 256)
+		output_side_length=256
+
+		height, width, depth = image.shape
+		new_height = output_side_length
+		new_width = output_side_length
+		if height > width:
+		 	new_height = output_side_length * height / width
+		else:
+		 	new_width = output_side_length * width / height
+		resized_img = cv2.resize(image, (new_width, new_height))
+		height_offset = (new_height - output_side_length) / 2
+		width_offset = (new_width - output_side_length) / 2
+		image= resized_img[height_offset:height_offset + output_side_length,
+		width_offset:width_offset + output_side_length]
+
+		image = image.transpose(2, 0, 1)
+		image = image[:, start:stop, start:stop].astype(np.float32)
+		image -= mean_image
+
+		return image
+
+
+'''
+	GoogLeNet by Caffenet 
+'''
+class GoogLeNet(ImageNet):
 	def __init__(self,model='bvlc_googlenet.caffemodel',
 					mean='ilsvrc_2012_mean.npy',
 					labels='labels.txt'):
+		super(GoogLeNet,self).__init__('GoogLeNet')
+
 		root, ext = os.path.splitext(model)
 		cashnpath = 'cash/'+hashlib.sha224(root).hexdigest()+".pkl"
 		if os.path.exists(cashnpath):
@@ -74,7 +136,7 @@ class GoogLeNet:
 
 		self.labels = np.loadtxt("misc/"+labels, str, delimiter="\t")
 
-	def _predict(self,x):
+	def predict(self,x):
 		y, = self.func(inputs={'data': x}, outputs=['loss3/classifier'],
 					disable=['loss1/ave_pool', 'loss2/ave_pool'],
 					train=False)
@@ -86,37 +148,15 @@ class GoogLeNet:
 
 		image = x
 
-		in_size = 224
-		cropwidth = 256 - in_size
-		start = cropwidth // 2
-		stop = start + in_size
-		mean_image = self.mean_image[:, start:stop, start:stop].copy()
-		target_shape = (256, 256)
-		output_side_length=256
-
-		height, width, depth = image.shape
-		new_height = output_side_length
-		new_width = output_side_length
-		if height > width:
-		  new_height = output_side_length * height / width
-		else:
-		  new_width = output_side_length * width / height
-		resized_img = cv2.resize(image, (new_width, new_height))
-		height_offset = (new_height - output_side_length) / 2
-		width_offset = (new_width - output_side_length) / 2
-		image= resized_img[height_offset:height_offset + output_side_length,
-		width_offset:width_offset + output_side_length]
-
-		image = image.transpose(2, 0, 1)
-		image = image[:, start:stop, start:stop].astype(np.float32)
-		image -= mean_image
+		self.in_size = 224
+		image = super(GoogLeNet,self)._filter(image)
 
 		x_batch = np.ndarray(
-		        (1, 3, in_size,in_size), dtype=np.float32)
+		        (1, 3, self.in_size,self.in_size), dtype=np.float32)
 		x_batch[0]=image
 
 		x = Variable(x_batch, volatile=True)
-		t = Tensor(self._predict(x).data[0])
+		t = Tensor(self.predict(x).data[0])
 		t.use()
 		t.output=zip(t.value.tolist(), self.labels)
 
