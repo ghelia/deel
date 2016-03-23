@@ -1,9 +1,9 @@
 
 from deel import *
 
+nin = NetworkInNetwork()
 CNN = GoogLeNet()
 
 Input("deel.png")
-t = CNN.classify()
-Show()
-print t.value
+CNN.classify()
+ShowLabels()

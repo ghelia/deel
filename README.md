@@ -17,7 +17,7 @@ CNN = GoogLeNet()
 
 Input("deel.png")
 CNN.classify()
-Output()
+Show()
 
 ```
 
@@ -25,18 +25,25 @@ Output()
 ```python
 CNN = GoogLeNet()
 
-TrainInput('train.tsv') 
-TestInput('test.tsv') 
-ValInput('val.tsv') 
-CNN.train(epoch=500) 
+InputStream(train='train.tsv',
+			test='test.tsv')
+Train(lambda x,t:
+	CNN.classify(x)
+	CNN.loss(x,t)
+)
 ```
 
 ####CNN-LSTM trainer
 ```python
-TrainInput('train.tsv') 
-TestInput('test.tsv') 
-ValInput('val.tsv') 
-CNN.classify() 
-Gap()
-LSTM.train(units=10,num_of_layers=5)
+CNN = GoogLeNet()
+RNN = LSTM()
+
+InputStream(train='train.tsv',
+			test='test.tsv')
+Train(lambda x,t:
+	Input(x)
+	CNN.classify() 
+	RNN.forward()
+	CNN.loss(t)
+,epoch=500)
 ```
