@@ -62,8 +62,6 @@ class LabelTensor(Tensor):
 			print('#%d | %s | %4.1f%%' % (rank, name, score * 100))	
 
 
-
-
 """Input something to context tensor"""
 def Input(x):
 	if isinstance(x,str):

@@ -23,14 +23,18 @@ Output()
 
 ####CNN trainer
 ```python
-Input('dataset.py') 
+TrainInput('train.tsv') 
+TestInput('test.tsv') 
+ValInput('val.tsv') 
 CNN.caffenet() 
-Train() 
+Train(epoch=500) 
 ```
 
 ####CNN-LSTM trainer
 ```python
-Input('dataset.py') 
+TrainInput('train.tsv') 
+TestInput('test.tsv') 
+ValInput('val.tsv') 
 CNN.caffenet() 
 Gap()
 LSTM(units=10,num_of_layers=5)

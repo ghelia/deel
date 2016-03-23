@@ -4,5 +4,6 @@ from deel import *
 CNN = GoogLeNet()
 
 Input("deel.png")
-CNN.classify()
+t = CNN.classify()
 Show()
+print t.value
