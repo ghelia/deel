@@ -23,11 +23,12 @@ Output()
 
 ####CNN trainer
 ```python
+CNN = GoogLeNet()
+
 TrainInput('train.tsv') 
 TestInput('test.tsv') 
 ValInput('val.tsv') 
-CNN.caffenet() 
-Train(epoch=500) 
+CNN.train(epoch=500) 
 ```
 
 ####CNN-LSTM trainer
@@ -35,8 +36,7 @@ Train(epoch=500)
 TrainInput('train.tsv') 
 TestInput('test.tsv') 
 ValInput('val.tsv') 
-CNN.caffenet() 
+CNN.classify() 
 Gap()
-LSTM(units=10,num_of_layers=5)
-Train() 
+LSTM.train(units=10,num_of_layers=5)
 ```
