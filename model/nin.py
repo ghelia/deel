@@ -54,4 +54,5 @@ class NIN(chainer.Chain):
     def getLoss(self,x,t):
         self.loss = F.softmax_cross_entropy(x, t)
         self.accuracy = F.accuracy(x, t)
+
         return self.loss,self.accuracy

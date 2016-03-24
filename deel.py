@@ -185,6 +185,26 @@ def load(path, root):
 		tuples.append((os.path.join(root, pair[0]), np.int32(pair[1])))
 	return tuples
 
+
+def read_image(path, center=False, flip=False):
+	cropwidth = 256 - ImageNet.in_size
+	image = np.asarray(Image.open(path)).transpose(2, 0, 1)
+	if center:
+		top = left = cropwidth / 2
+	else:
+		top = random.randint(0, cropwidth - 1)
+		left = random.randint(0, cropwidth - 1)
+	bottom = ImageNet.in_size + top
+	right = ImageNet.in_size + left
+
+	image = image[:, top:bottom, left:right].astype(np.float32)
+	image -= ImageNet.mean_image[:, top:bottom, left:right]
+	image /= 255
+	if flip and random.randint(0, 1) == 0:
+		return image[:, :, ::-1]
+	else:
+		return image
+
 def feed_data():
 	global optimizer_lr
 	# Data feeder
@@ -377,24 +397,6 @@ def filter(image):
 
 	return image
 
-def read_image(path, center=False, flip=False):
-	cropwidth = 256 - ImageNet.in_size
-	image = np.asarray(Image.open(path)).transpose(2, 0, 1)
-	if center:
-		top = left = cropwidth / 2
-	else:
-		top = random.randint(0, cropwidth - 1)
-		left = random.randint(0, cropwidth - 1)
-	bottom = ImageNet.in_size + top
-	right = ImageNet.in_size + left
-
-	image = image[:, top:bottom, left:right].astype(np.float32)
-	image -= ImageNet.mean_image[:, top:bottom, left:right]
-	image /= 255
-	if flip and random.randint(0, 1) == 0:
-		return image[:, :, ::-1]
-	else:
-		return image
 
 	
 '''
@@ -450,11 +452,8 @@ class NetworkInNetwork(ImageNet):
 
 		self.func = model.nin.NIN()
 
+		ImageNet.mean_image = pickle.load(open('data/mean.npy', 'rb'))
 
-		ImageNet.mean_image = np.ndarray((3, 256, 256), dtype=np.float32)
-		ImageNet.mean_image[0] = 104
-		ImageNet.mean_image[1] = 117
-		ImageNet.mean_image[2] = 123
 
 		self.labels = np.loadtxt("misc/"+labels, str, delimiter="\t")
 
@@ -480,18 +479,33 @@ class NetworkInNetwork(ImageNet):
 
 		return t
 
+	def train(self,x,t):
+		_x = x.content
+		_t = t.content
+		loss= self.func(_x,_t)
+		print("backward")
+		loss.backward()
+		print("backward-end")
+		self.optimizer.update()
+		print('loss', loss.data)
+		t.content.loss =loss
+		t.content.accuracy=self.func.accuracy		
+		return t
+
+
 	def backprop(self,t):
 		global optimizer_lr
 		x=Tensor.context
 
+
 		self.optimizer.lr = optimizer_lr
 
+		self.optimizer.zero_grads()
 		loss,accuracy = self.func.getLoss(x.content,t.content)
 		t.content.loss =loss
 		t.content.accuracy=accuracy
 		loss.backward()
 		self.optimizer.update()
-		print('learning rate', self.optimizer.lr)
 
 		return t
 

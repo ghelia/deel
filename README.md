@@ -21,7 +21,7 @@ Show()
 
 ```
 
-####CNN trainer (done / but only for CPU)
+####CNN trainer (pending)
 ```python
 nin = NetworkInNetwork()
 
@@ -30,7 +30,7 @@ InputBatch(train="data/train.txt",
 
 def workout(x,t):
 	nin.classify(x)	
-	nin.backprop(t)
+	return nin.backprop(t)
 
 BatchTrain(workout)
 ```
