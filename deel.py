@@ -19,6 +19,7 @@ from six.moves import queue
 import pickle
 import cv2
 import hashlib
+import datetime
 import sys
 import random
 
@@ -175,7 +176,7 @@ class BatchTrainer(object):
 		feeder.join()
 		logger.join()
 
-
+optimizer_lr=0.1
 
 def load(path, root):
 	tuples = []
@@ -185,6 +186,7 @@ def load(path, root):
 	return tuples
 
 def feed_data():
+	global optimizer_lr
 	# Data feeder
 	i = 0
 	count = 0
@@ -217,7 +219,6 @@ def feed_data():
 			if i == BatchTrainer.batchsize:
 
 				for j, x in enumerate(batch_pool):
-					x.wait()
 					x_batch[j] = x.get()
 				BatchTrainer.data_q.put((x_batch.copy(), y_batch.copy()))
 				i = 0
@@ -238,8 +239,8 @@ def feed_data():
 						BatchTrainer.data_q.put((val_x_batch.copy(), val_y_batch.copy()))
 						j = 0
 				BatchTrainer.data_q.put('train')
+		optimizer_lr *= 0.97
 
-		optimizer.lr *= 0.97
 	pool.close()
 	pool.join()
 	BatchTrainer.data_q.put('end')
@@ -271,10 +272,10 @@ def log_result():
 		if train:
 			train_count += 1
 			duration = time.time() - begin_at
-			throughput = train_count * args.batchsize / duration
+			throughput = train_count * BatchTrainer.batchsize / duration
 			print(
 				'\rtrain {} updates ({} samples) time: {} ({} images/sec)'
-				.format(train_count, train_count * args.batchsize,
+				.format(train_count, train_count * BatchTrainer.batchsize,
 						datetime.timedelta(seconds=duration), throughput))
 
 			train_cur_loss += loss
@@ -307,29 +308,31 @@ def log_result():
 
 def train_loop():
 	global workout
+	train=True
 	while True:
 		while BatchTrainer.data_q.empty():
 			time.sleep(0.1)
 		inp = BatchTrainer.data_q.get()
-		print "-----"
-		print inp
 		if inp == 'end':  # quit
 			BatchTrainer.res_q.put('end')
 			break
 		elif inp == 'train':  # restart training
 			BatchTrainer.res_q.put('train')
-			volatile = 'off'
+			train=True
 			continue
 		elif inp == 'val':  # start validation
 			BatchTrainer.res_q.put('val')
-			volatile = 'on'
+			train=False
 			continue
+
+		volatile = 'off' if train else 'on'
 
 		x = ChainerTensor(Variable(xp.asarray(inp[0]), volatile=volatile))
 		t = ChainerTensor(Variable(xp.asarray(inp[1]), volatile=volatile))
 
-		loss,accuracy = workout(x,t)
-		
+		result = workout(x,t)
+		loss = result.content.loss
+		accuracy = result.content.accuracy
 
 		BatchTrainer.res_q.put((float(loss.data), float(accuracy.data)))
 		del x, t
@@ -376,27 +379,7 @@ def filter(image):
 
 def read_image(path, center=False, flip=False):
 	cropwidth = 256 - ImageNet.in_size
-	image = Image.open(path)
-	image = np.asarray(image)
-	#resizing
-	target_shape = (256, 256)
-	output_side_length=256
-
-	height, width, depth = image.shape
-	new_height = output_side_length
-	new_width = output_side_length
-	if height > width:
-		new_height = output_side_length * height / width
-	else:
-		new_width = output_side_length * width / height
-	resized_img = cv2.resize(image, (new_width, new_height))
-	height_offset = (new_height - output_side_length) / 2
-	width_offset = (new_width - output_side_length) / 2
-	image= resized_img[height_offset:height_offset + output_side_length,
-	width_offset:width_offset + output_side_length]
-
-	image = np.asarray(image).transpose(2, 0, 1)
-
+	image = np.asarray(Image.open(path)).transpose(2, 0, 1)
 	if center:
 		top = left = cropwidth / 2
 	else:
@@ -447,7 +430,7 @@ class GoogLeNet(ImageNet):
 		if x==None:
 			x=Tensor.context
 
-		x = Variable(x.value, volatile=True)
+		x = x.content
 		result = self.forward(x)
 		t = ChainerTensor(result)
 		t.owner=self
@@ -482,14 +465,14 @@ class NetworkInNetwork(ImageNet):
 
 
 	def forward(self,x):
-		y = self.func.forward()
+		y = self.func.forward(x)
 		return y
 
 	def classify(self,x=None):
 		if x==None:
 			x=Tensor.context
 
-		x = Variable(x.value, volatile=True)
+		x = x.content
 		result = self.forward(x)
 		t = ChainerTensor(result)
 		t.owner=self
@@ -497,16 +480,18 @@ class NetworkInNetwork(ImageNet):
 
 		return t
 
-	def backprop(self,x=None,t=None):
-		if x==None:
-			x=Tensor.context
+	def backprop(self,t):
+		global optimizer_lr
+		x=Tensor.context
 
-		loss,accuracy = self.func.loss(result,x.content,t.content)
-		t.loss =loss
-		t.accuracy=accuracy
+		self.optimizer.lr = optimizer_lr
+
+		loss,accuracy = self.func.getLoss(x.content,t.content)
+		t.content.loss =loss
+		t.content.accuracy=accuracy
 		loss.backward()
 		self.optimizer.update()
-		print('learning rate', optimizer.lr)
+		print('learning rate', self.optimizer.lr)
 
 		return t
 

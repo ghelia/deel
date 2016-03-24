@@ -41,7 +41,7 @@ class NIN(chainer.Chain):
         self.accuracy = F.accuracy(h, t)
         return self.loss
 
-    def forward(self, x, t):
+    def forward(self, x):
         self.clear()
         h = F.max_pooling_2d(F.relu(self.mlpconv1(x)), 3, stride=2)
         h = F.max_pooling_2d(F.relu(self.mlpconv2(h)), 3, stride=2)
@@ -51,7 +51,7 @@ class NIN(chainer.Chain):
 
         return h
 
-    def loss(self,x,t):
+    def getLoss(self,x,t):
         self.loss = F.softmax_cross_entropy(x, t)
         self.accuracy = F.accuracy(x, t)
         return self.loss,self.accuracy
