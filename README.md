@@ -21,7 +21,7 @@ Show()
 
 ```
 
-####CNN trainer (now coding)
+####CNN trainer (done / but only for CPU)
 ```python
 nin = NetworkInNetwork()
 

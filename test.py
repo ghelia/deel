@@ -8,12 +8,13 @@ InputBatch(train="data/train.txt",
 
 def trainer(x,t):
 	nin.classify(x)	
-	return nin.loss(t)
+	nin.backprop(t)
 
 BatchTrain(trainer)
 
 
 CNN = GoogLeNet()
-Input("deel.png")
+
+i = Input("deel.png")
 CNN.classify()
 ShowLabels()
