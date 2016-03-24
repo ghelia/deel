@@ -28,6 +28,7 @@ class Deel(object):
 	val = None
 	root = '.'
 	epoch=100
+	gpu=-1
 	def __init__(self):
 		self.singleton = self
 
@@ -35,6 +36,8 @@ class Deel(object):
 	@staticmethod
 	def getInstance():
 		return Deel.singleton
+
+xp = np
 
 def InputBatch(train=None,val=None):
 	Deel.train = train
@@ -147,15 +150,12 @@ class BatchTrainer(object):
 	val_batchsize=250
 	data_q=None
 	res_q=None
-	loaderjob=2
+	loaderjob=20
 	train_list=''
 	val_list=''
 	def __init__(self,in_size=256):
-		BatchTrainer.batchsize = 32
-		BatchTrainer.val_batchsize = 250
 		BatchTrainer.data_q = queue.Queue(maxsize=1)
 		BatchTrainer.res_q = queue.Queue()
-		BatchTrainer.loaderjob=20
 		BatchTrainer.in_size=ImageNet.in_size
 	def train(self,workout,optimizer=None):
 		BatchTrainer.train_list = load(Deel.train,Deel.root)
@@ -215,7 +215,9 @@ def feed_data():
 			i += 1
 
 			if i == BatchTrainer.batchsize:
+
 				for j, x in enumerate(batch_pool):
+					x.wait()
 					x_batch[j] = x.get()
 				BatchTrainer.data_q.put((x_batch.copy(), y_batch.copy()))
 				i = 0
@@ -270,7 +272,7 @@ def log_result():
 			train_count += 1
 			duration = time.time() - begin_at
 			throughput = train_count * args.batchsize / duration
-			sys.stderr.write(
+			print(
 				'\rtrain {} updates ({} samples) time: {} ({} images/sec)'
 				.format(train_count, train_count * args.batchsize,
 						datetime.timedelta(seconds=duration), throughput))
@@ -289,7 +291,7 @@ def log_result():
 			val_count += args.val_batchsize
 			duration = time.time() - val_begin_at
 			throughput = val_count / duration
-			sys.stderr.write(
+			print(
 				'\rval   {} batches ({} samples) time: {} ({} images/sec)'
 				.format(val_count / args.val_batchsize, val_count,
 						datetime.timedelta(seconds=duration), throughput))
@@ -301,13 +303,16 @@ def log_result():
 				mean_error = 1 - val_accuracy * args.val_batchsize / 50000
 				print(json.dumps({'type': 'val', 'iteration': train_count,
 								  'error': mean_error, 'loss': mean_loss}))
-				sys.stdout.flush()
+
 
 def train_loop():
+	global workout
 	while True:
 		while BatchTrainer.data_q.empty():
 			time.sleep(0.1)
 		inp = BatchTrainer.data_q.get()
+		print "-----"
+		print inp
 		if inp == 'end':  # quit
 			BatchTrainer.res_q.put('end')
 			break
@@ -320,11 +325,10 @@ def train_loop():
 			volatile = 'on'
 			continue
 
-		x = chainer.Variable(xp.asarray(inp[0]), volatile=volatile)
-		t = chainer.Variable(xp.asarray(inp[1]), volatile=volatile)
+		x = ChainerTensor(Variable(xp.asarray(inp[0]), volatile=volatile))
+		t = ChainerTensor(Variable(xp.asarray(inp[1]), volatile=volatile))
 
-		loss,accuracy = BatchTrainer.workout(x,t)
-		loss.backward()
+		loss,accuracy = workout(x,t)
 		
 
 		BatchTrainer.res_q.put((float(loss.data), float(accuracy.data)))
@@ -337,9 +341,9 @@ def train_loop():
 '''
 class ImageNet(Network):
 	mean_image=None
-	in_size=256
+	in_size=224
 	mean_image=None
-	def __init__(self,name,in_size=256):
+	def __init__(self,name,in_size=224):
 		super(ImageNet,self).__init__(name)
 		ImageNet.in_size = in_size
 
@@ -370,12 +374,10 @@ def filter(image):
 
 	return image
 
-
 def read_image(path, center=False, flip=False):
 	cropwidth = 256 - ImageNet.in_size
-
-	image = np.asarray(Image.open(path)).transpose(2, 0, 1)
-
+	image = Image.open(path)
+	image = np.asarray(image)
 	#resizing
 	target_shape = (256, 256)
 	output_side_length=256
@@ -392,6 +394,8 @@ def read_image(path, center=False, flip=False):
 	width_offset = (new_width - output_side_length) / 2
 	image= resized_img[height_offset:height_offset + output_side_length,
 	width_offset:width_offset + output_side_length]
+
+	image = np.asarray(image).transpose(2, 0, 1)
 
 	if center:
 		top = left = cropwidth / 2
@@ -507,9 +511,27 @@ class NetworkInNetwork(ImageNet):
 		return t
 
 
-def BatchTrain(workout):
+def BatchTrain(callback):
+	global workout
 	trainer = BatchTrainer()
-	trainer.train(workout)
+#	trainer.train(workout)
+
+	BatchTrainer.train_list = load(Deel.train,Deel.root)
+	BatchTrainer.val_list = load(Deel.val,Deel.root)
+
+
+	feeder = threading.Thread(target=feed_data)
+	feeder.daemon = True
+	feeder.start()
+	logger = threading.Thread(target=log_result)
+	logger.daemon = True
+	logger.start()	
+
+	workout = callback
+
+	train_loop()
+	feeder.join()
+	logger.join()
 
 
 
