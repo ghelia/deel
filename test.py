@@ -1,6 +1,7 @@
 
 from deel import *
-Deel.gpu=0
+
+deel = Deel()
 
 nin = NetworkInNetwork()
 

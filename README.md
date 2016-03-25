@@ -21,7 +21,7 @@ Show()
 
 ```
 
-####CNN trainer (pending)
+####CNN trainer (almost done,not testing with GPU)
 ```python
 nin = NetworkInNetwork()
 

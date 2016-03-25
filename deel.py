@@ -23,6 +23,9 @@ import datetime
 import sys
 import random
 
+xp = np
+
+
 class Deel(object):
 	singlton = None
 	train = None
@@ -30,15 +33,20 @@ class Deel(object):
 	root = '.'
 	epoch=100
 	gpu=-1
-	def __init__(self):
+	def __init__(self,gpu=-1):
+		global xp
 		self.singleton = self
+		self.gpu=gpu
+		if gpu>=0:
+			cuda.get_device(gpu).use()
+			xp = cuda.cupy if gpu >= 0 else np
+
 
 
 	@staticmethod
 	def getInstance():
 		return Deel.singleton
 
-xp = np
 
 def InputBatch(train=None,val=None):
 	Deel.train = train
@@ -456,6 +464,9 @@ class NetworkInNetwork(ImageNet):
 
 
 		self.labels = np.loadtxt("misc/"+labels, str, delimiter="\t")
+
+		if Deel.gpu>=0:
+			self.func.to_gpu()
 
 
 		if optimizer == None:
