@@ -54,13 +54,14 @@ BatchTrain(epoch=500)
 ####CNN-DQN with Unity (not yet)
 ```python
 CNN = GoogLeNet()
-DQN = DeepQLearning()
+DQN = DeepQLearning(output=4)
 
 def workout():
 	#Realtime input image from Unity
-	InputStream('unity.png') 
+	InputUnity('unity.png') 
 	CNN.classify() 
 	DQN.forward()
+    OutputUnity( { 0:'left, 1:'right, 2:'up', 3:'down', 4:'space'})
 
 	#Get score or loss from Unity game
 	t = InputVarsFromUnity()
