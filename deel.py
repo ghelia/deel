@@ -387,7 +387,7 @@ class GoogLeNet(ImageNet):
 import model.nin
 
 class NetworkInNetwork(ImageNet):
-	def __init__(self,mean='data/mean.npy',labels='misc/labels.txt',optimizer=None):
+	def __init__(self,mean='data/mean.npy',labels='data/labels.txt',optimizer=None):
 		super(NetworkInNetwork,self).__init__('NetworkInNetwork',in_size=227)
 
 		self.func = model.nin.NIN()
@@ -450,6 +450,8 @@ class NetworkInNetwork(ImageNet):
 		self.optimizer.update()
 
 		return t
+
+
 def InputBatch(train='data/train.txt',val='data/test.txt'):
 	Deel.train=train
 	Deel.val = val

@@ -9,6 +9,14 @@ Deel; A High level deep neural network description language.
 ## Goal
 Describe deep neural network, training and using in simple syntax.
 
+## Install and test
+
+$ git clone https://github.com/uei/deel.git
+$ cd deel/data
+$ ./getCaltech101.sh
+$ cd ..
+$ python test.py
+
 ###Examples
 
 ####CNN classifier (done)
