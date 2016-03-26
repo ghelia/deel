@@ -46,7 +46,7 @@ def workout(x,t):
 	Input(x)
 	CNN.classify() 
 	RNN.forward()
-	RNN.backprop(t)
+	return RNN.backprop(t)
 
 BatchTrain(epoch=500)
 ```
