@@ -5,6 +5,7 @@ from chainer import computational_graph
 from chainer import cuda
 from chainer import optimizers
 from chainer import serializers
+from tensor import *
 import json
 import os
 import multiprocessing
@@ -33,6 +34,8 @@ class Deel(object):
 	root = '.'
 	epoch=100
 	gpu=-1
+	mean=None
+	labels=None
 	def __init__(self,gpu=-1):
 		global xp
 		self.singleton = self
@@ -41,79 +44,9 @@ class Deel(object):
 			cuda.get_device(gpu).use()
 			xp = cuda.cupy if gpu >= 0 else np
 
-
-
 	@staticmethod
 	def getInstance():
 		return Deel.singleton
-
-
-def InputBatch(train=None,val=None):
-	Deel.train = train
-	Deel.val = val
-
-class Tensor(object):
-	""" A tensor """
-
-	context = None
-
-	def __init__(	self,value=np.array([1], dtype=np.float32),
-					category='scalar',comment=''):
-		self.content = value
-		self.shape = value.shape
-		self.value = value
-		self.comment = comment
-		self.output = None
-		self.owner = None
-	def use(self):
-		Tensor.context = self
-	def show(self):
-			print self.get()
-	def get(self):
-		return self.value
-
-class ImageTensor(Tensor):
-	def __init__(	self,x,comment=''):
-		super(ImageTensor,self).__init__(
-				np.asarray(x).transpose(2, 0, 1),
-				comment=comment)
-		self.content = x
-		
-		image = filter(np.asarray(x))
-
-		x_batch = np.ndarray(
-				(1, 3, ImageNet.in_size,ImageNet.in_size), dtype=np.float32)
-		x_batch[0]=image
-
-		self.value=x_batch
-
-	def get(self):
-		return	self.value.transpose(1, 2, 0)
-	def show(self):
-		tmp = self.get()
-		img = Image.fromarray(tmp)
-		img.show()
-
-
-class ChainerTensor(Tensor):
-	def __init__(	self,x,comment=''):
-		super(ChainerTensor,self).__init__(
-				x.data,
-				comment=comment)
-		self.content = x
-
-class LabelTensor(Tensor):
-	def __init__(	self,x,comment=''):
-		super(LabelTensor,self).__init__(
-				x,
-				comment=comment)
-		out=zip(x.value[0].tolist(), x.owner.labels)
-		out.sort(cmp=lambda a, b: cmp(a[0], b[0]), reverse=True)
-		self.content = out
-
-	def show(self,num_of_candidate=5):
-		for rank, (score, name) in enumerate(self.content[:num_of_candidate], start=1):
-			print('#%d | %s | %4.1f%%' % (rank, name, score * 100))	
 
 
 """Input something to context tensor"""
@@ -454,16 +387,14 @@ class GoogLeNet(ImageNet):
 import model.nin
 
 class NetworkInNetwork(ImageNet):
-	def __init__(self,
-					labels='labels.txt',optimizer=None):
+	def __init__(self,mean='data/mean.npy',labels='misc/labels.txt',optimizer=None):
 		super(NetworkInNetwork,self).__init__('NetworkInNetwork',in_size=227)
 
 		self.func = model.nin.NIN()
 
-		ImageNet.mean_image = pickle.load(open('data/mean.npy', 'rb'))
+		ImageNet.mean_image = pickle.load(open(mean, 'rb'))
 
-
-		self.labels = np.loadtxt("misc/"+labels, str, delimiter="\t")
+		self.labels = np.loadtxt(labels, str, delimiter="\t")
 
 		if Deel.gpu>=0:
 			self.func.to_gpu()
@@ -519,6 +450,10 @@ class NetworkInNetwork(ImageNet):
 		self.optimizer.update()
 
 		return t
+def InputBatch(train='data/train.txt',val='data/test.txt'):
+	Deel.train=train
+	Deel.val = val
+
 
 
 def BatchTrain(callback):
