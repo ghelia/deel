@@ -1,7 +1,7 @@
 
 from deel import *
-
-deel = Deel()
+from deel.network import *
+from deel.commands import *
 
 nin = NetworkInNetwork()
 
