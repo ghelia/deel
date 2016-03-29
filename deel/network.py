@@ -1,13 +1,12 @@
 import chainer.functions as F
-from chainer import Variable, FunctionSet, optimizers
+import chainer.links as L
+from chainer import Variable
 from chainer.links import caffe
 from chainer import computational_graph
-from chainer import cuda
-from chainer import optimizers
-from chainer import serializers
 from tensor import *
 from network import *
 from deel import *
+import chainer
 import json
 import os
 import multiprocessing
@@ -123,6 +122,7 @@ class GoogLeNet(ImageNet):
 
 		x = x.content
 		result = self.forward(x)
+		result = Variable(result.data) #Unchain 
 		t = ChainerTensor(result)
 		t.owner=self
 		t.use()
@@ -161,8 +161,8 @@ class NetworkInNetwork(ImageNet):
 		if x==None:
 			x=Tensor.context
 
-		x = x.content
-		result = self.forward(x)
+		_x = x.content
+		result = self.forward(_x)
 		t = ChainerTensor(result)
 		t.owner=self
 		t.use()
@@ -170,14 +170,13 @@ class NetworkInNetwork(ImageNet):
 		return t
 
 	def train(self,x,t):
+		if x==None:
+			x=Tensor.context
 		_x = x.content
 		_t = t.content
 		loss= self.func(_x,_t)
-		print("backward")
 		loss.backward()
-		print("backward-end")
 		self.optimizer.update()
-		print('loss', loss.data)
 		t.content.loss =loss
 		t.content.accuracy=self.func.accuracy		
 		return t
@@ -197,3 +196,126 @@ class NetworkInNetwork(ImageNet):
 		self.optimizer.update()
 
 		return t
+
+
+import model.lstm
+class LSTM(Network):
+	def __init__(self,optimizer=None,vocab=None,n_input_units=1000,
+					n_units=650,grad_clip=5,bproplen=35):
+
+		if vocab==None:
+			vocab=BatchTrainer.vocab
+		self.vocab=vocab
+		n_vocab = len(vocab)
+		super(LSTM,self).__init__('LSTM')
+
+		self.func = model.lstm.RNNLM(n_input_units=n_input_units,n_vocab=n_vocab,n_units=n_units)
+		self.func.compute_accuracy = False 
+		for param in self.func.params():
+			data = param.data
+			data[:] = np.random.uniform(-0.1, 0.1, data.shape)
+
+
+		if Deel.gpu>=0:
+			self.func.to_gpu()
+
+
+		if optimizer == None:
+			self.optimizer = optimizers.SGD(lr=1.)
+		self.optimizer.setup(self.func)
+		self.clip = chainer.optimizer.GradientClipping(grad_clip)
+		self.optimizer.add_hook(self.clip)
+
+		self.accum_loss = 0
+		self.cur_log_perp =  Deel.xp.zeros(())
+
+	def evaluate(dataset):
+		# Evaluation routine
+		evaluator = self.func.copy()  # to use different state
+		evaluator.predictor.reset_state()  # initialize state
+		evaluator.predictor.train = False  # dropout does nothing
+
+		sum_log_perp = 0
+		for i in six.moves.range(dataset.size - 1):
+			x = chainer.Variable(Deel.xp.asarray(dataset[i:i + 1]), volatile='on')
+			t = chainer.Variable(Deel.xp.asarray(dataset[i + 1:i + 2]), volatile='on')
+			loss = evaluator(x, t)
+			sum_log_perp += loss.data
+		return math.exp(float(sum_log_perp) / (dataset.size - 1))
+
+	def forward(self,x=None):
+		return self.func(x)
+
+	def learn(self,str,x=None):
+		if x==None:
+			x=Tensor.context
+
+		_t = Deel.xp.asarray([self.vocab[str[0]]], dtype=np.int32)
+		t = ChainerTensor(Variable(_t))
+		self.firstInput(t)
+		#_x = x.content
+
+
+
+		for j in range(len(str)-2):
+			_x = Deel.xp.asarray([self.vocab[str[j+1]]], dtype=np.int32)
+			x = ChainerTensor(Variable(_x))
+			x.use()
+
+			_t = Deel.xp.asarray([self.vocab[str[j+2]]], dtype=np.int32)
+			t = ChainerTensor(Variable(_t))
+			self.train(t)
+
+		print ('loss',self.accum_loss.data)
+
+		return x
+
+
+
+	def firstInput(self,t,x=None):
+		if x==None:
+			x=Tensor.context
+		_x = x.content
+		_t = t.content
+		_y = self.func(_x,mode=1)
+		loss = chainer.functions.loss.softmax_cross_entropy.softmax_cross_entropy(_y,_t)
+		self.func.y = _y
+		self.func.loss = loss
+		self.accum_loss += loss
+		self.cur_log_perp += loss.data
+
+		return x
+
+	def train(self,t,x=None):
+		if x==None:
+			x=Tensor.context
+		_x = x.content
+		_t = t.content
+
+		_y = self.func(_x)
+		loss= F.softmax_cross_entropy(_y,_t)
+		self.func.y = _y
+		self.func.loss = loss
+		self.accum_loss += loss
+		self.cur_log_perp += loss.data
+
+		return self
+
+
+	def backprop(self):
+		self.func.zerograds()
+		self.accum_loss.backward()
+		self.accum_loss.unchain_backward()  # truncate
+		self.accum_loss = 0
+		self.optimizer.update()
+		
+import collections
+def _sum_sqnorm(arr):
+    sq_sum = collections.defaultdict(float)
+    for x in arr:
+        with cuda.get_device(x) as dev:
+            x = x.ravel()
+            s = x.dot(x)
+            sq_sum[int(dev)] += s
+    return sum([float(i) for i in six.itervalues(sq_sum)])
+

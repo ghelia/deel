@@ -45,20 +45,19 @@ def workout(x,t):
 BatchTrain(workout)
 ```
 
-####CNN-LSTM trainer (not yet)
+####CNN-LSTM trainer (done, not test)
 ```python
+InputBatch(train="data/train_lstm.tsv")
+
 CNN = GoogLeNet()
 RNN = LSTM()
 
-InputBatch(train='train.tsv',
-			test='test.tsv')
-def workout(x,t):
-	Input(x)
+def trainer(x,t):
 	CNN.classify() 
-	RNN.forward()
-	return RNN.backprop(t)
+	RNN.learn(t)
+	return RNN.backprop()
 
-BatchTrain(epoch=500)
+BatchTrain(trainer)
 ```
 
 ####CNN-DQN with Unity (not yet)

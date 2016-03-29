@@ -24,8 +24,6 @@ import datetime
 import sys
 import random
 
-xp = np
-
 
 class Deel(object):
 	singlton = None
@@ -36,16 +34,40 @@ class Deel(object):
 	gpu=-1
 	mean=None
 	labels=None
+	xp = np
 	optimizer_lr=0.1
+	trainCount=0
+	lstm_train=None
 	def __init__(self,gpu=-1):
-		global xp
 		self.singleton = self
 		self.gpu=gpu
 		if gpu>=0:
 			cuda.get_device(gpu).use()
-			xp = cuda.cupy if gpu >= 0 else np
+			self.xp = cuda.cupy if gpu >= 0 else np
 
 	@staticmethod
 	def getInstance():
 		return Deel.singleton
+
+
+
+'''
+	Trainer
+'''
+class BatchTrainer(object):
+	batchsize=32
+	val_batchsize=250
+	data_q=None
+	res_q=None
+	loaderjob=20
+	train_list=None
+	val_list=None
+	lstm_train=None
+	num_of_vocab=0
+	mode='CNN'
+	vocab=None
+	in_size=256
+	def __init__(self,in_size=256):
+		BatchTrainer.data_q = queue.Queue(maxsize=1)
+		BatchTrainer.res_q = queue.Queue()
 

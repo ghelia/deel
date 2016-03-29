@@ -42,40 +42,7 @@ def Input(x):
 	return t
 
 
-'''
-	Trainer
-'''
-class BatchTrainer(object):
-	batchsize=32
-	val_batchsize=250
-	data_q=None
-	res_q=None
-	loaderjob=20
-	train_list=''
-	val_list=''
-	def __init__(self,in_size=256):
-		BatchTrainer.data_q = queue.Queue(maxsize=1)
-		BatchTrainer.res_q = queue.Queue()
-		BatchTrainer.in_size=ImageNet.in_size
-	def train(self,workout,optimizer=None):
-		BatchTrainer.train_list = load(Deel.train,Deel.root)
-		BatchTrainer.val_list = load(Deel.val,Deel.root)
 
-
-		feeder = threading.Thread(target=feed_data)
-		feeder.daemon = True
-		feeder.start()
-		logger = threading.Thread(target=log_result)
-		logger.daemon = True
-		logger.start()	
-
-		BatchTrainer.workout = workout
-
-		train_loop()
-		feeder.join()
-		logger.join()
-
-optimizer_lr=0.1
 
 def load(path, root):
 	tuples = []
@@ -117,6 +84,7 @@ def feed_data():
 	x_batch = np.ndarray(
 		(batchsize, 3, in_size, in_size), dtype=np.float32)
 	y_batch = np.ndarray((batchsize,), dtype=np.int32)
+
 	val_x_batch = np.ndarray(
 		(val_batchsize, 3, in_size, in_size), dtype=np.float32)
 	val_y_batch = np.ndarray((val_batchsize,), dtype=np.int32)
@@ -228,6 +196,7 @@ def log_result():
 def train_loop():
 	global workout
 	train=True
+	Deel.trainCount=0
 	while True:
 		while BatchTrainer.data_q.empty():
 			time.sleep(0.1)
@@ -246,46 +215,102 @@ def train_loop():
 
 		volatile = 'off' if train else 'on'
 
-		x = ChainerTensor(Variable(xp.asarray(inp[0]), volatile=volatile))
-		t = ChainerTensor(Variable(xp.asarray(inp[1]), volatile=volatile))
+		x = ChainerTensor(Variable(Deel.xp.asarray(inp[0]), volatile=volatile))
+		t = ChainerTensor(Variable(Deel.xp.asarray(inp[1]), volatile=volatile))
 
 		result = workout(x,t)
 		loss = result.content.loss
 		accuracy = result.content.accuracy
 
+		Deel.trainCount+=1
+
 		BatchTrainer.res_q.put((float(loss.data), float(accuracy.data)))
 		del x, t
 
 
+def cnn_lstm_trainer(workout):
+	Deel.trainCount=0
+	while True:
+
+		train_list = BatchTrainer.lstm_train		
+
+		for i in range(len(train_list)):
+			x = Deel.xp.asarray([read_image(train_list[i][0],False,True)])
+			x = ChainerTensor(Variable(x,volatile='on'))
+			x.use()
+
+			result = workout(x,train_list[i][1])
+
+			Deel.trainCount+=1
+
+
+
+def isImageFile(path):
+	root, ext = os.path.splitext(path)
+	if ext=='.gif':
+		return True
+	if ext=='.png':
+		return True
+	if ext=='.jpeg':
+		return True
+	if ext=='.jpg':
+		return True
+	return False
 
 
 def InputBatch(train='data/train.txt',val='data/test.txt'):
 	Deel.train=train
 	Deel.val = val
 
+	root, ext = os.path.splitext(train)
+	if ext==".txt":
+		BatchTrainer.train_list = load(Deel.train,Deel.root)
+		BatchTrainer.val_list = load(Deel.val,Deel.root)
+		BatchTrainer.in_size=ImageNet.in_size
+		BatchTrainer.mode='CNN'
+	if ext==".tsv":
+		lstm_pairs=[]
+		for line in  open(train).readlines():
+			data = line.rstrip().split('\t')
+			lstm_pairs.append( data)
+		BatchTrainer.lstm_train = lstm_pairs
+		if isImageFile(lstm_pairs[0][0]):
+			BatchTrainer.in_size=ImageNet.in_size
+			BatchTrainer.mode='CNN-LSTM'
+		else:
+			BatchTrainer.mode='LSTM'
+
+		vocab={}
+		for i in range(len(lstm_pairs)):
+			word = lstm_pairs[i][1]
+			for char in word:
+				if char not in vocab:
+					vocab[char] = len(vocab)
+		BatchTrainer.vocab = vocab
+
+
 
 
 def BatchTrain(callback):
 	global workout
 	trainer = BatchTrainer()
-#	trainer.train(workout)
 
-	BatchTrainer.train_list = load(Deel.train,Deel.root)
-	BatchTrainer.val_list = load(Deel.val,Deel.root)
+	if BatchTrainer.mode=='CNN':
+		feeder = threading.Thread(target=feed_data)
+		feeder.daemon = True
+		feeder.start()
+		logger = threading.Thread(target=log_result)
+		logger.daemon = True
+		logger.start()	
 
+		workout = callback
 
-	feeder = threading.Thread(target=feed_data)
-	feeder.daemon = True
-	feeder.start()
-	logger = threading.Thread(target=log_result)
-	logger.daemon = True
-	logger.start()	
+		train_loop()
+		feeder.join()
+		logger.join()
+	elif BatchTrainer.mode=='CNN-LSTM':
+		cnn_lstm_trainer(callback)
 
-	workout = callback
-
-	train_loop()
-	feeder.join()
-	logger.join()
 
 
 
