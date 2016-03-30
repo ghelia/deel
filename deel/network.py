@@ -111,7 +111,7 @@ class GoogLeNet(ImageNet):
 			self.func = pickle.load(open(cashnpath,'rb'))
 		else:
 			self.func = caffe.CaffeFunction('misc/'+model)
-			pickle.dump(this.func, open(cashnpath, 'wb'))
+			pickle.dump(self.func, open(cashnpath, 'wb'))
 		ImageNet.mean_image = np.ndarray((3, 256, 256), dtype=np.float32)
 		ImageNet.mean_image[0] = 104
 		ImageNet.mean_image[1] = 117
