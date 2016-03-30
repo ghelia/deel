@@ -15,6 +15,8 @@ Describe deep neural network, training and using in simple syntax.
 $ git clone https://github.com/uei/deel.git
 $ cd deel/data
 $ ./getCaltech101.sh
+$ cd ../misc
+$ ./getCaffeNet.sh
 $ cd ..
 $ python test.py
 ```
