@@ -151,7 +151,7 @@ class NetworkInNetwork(ImageNet):
 		self.func = model.nin.NIN()
 
 		ImageNet.mean_image = pickle.load(open(mean, 'rb'))
-		ImageNet.in_size = model.nin.insize
+		ImageNet.in_size = self.func.insize
 
 		self.labels = np.loadtxt(labels, str, delimiter="\t")
 
