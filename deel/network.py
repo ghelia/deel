@@ -47,16 +47,6 @@ class Network(object):
 	def __str__(self):
 		return self.name
 
-'''
-	ImageNet
-'''
-class ImageNet(Network):
-	mean_image=None
-	in_size=224
-	mean_image=None
-	def __init__(self,name,in_size=224):
-		super(ImageNet,self).__init__(name)
-		ImageNet.in_size = in_size
 
 def filter(image):
 	cropwidth = 256 - ImageNet.in_size
@@ -85,6 +75,25 @@ def filter(image):
 
 	return image
 
+'''
+	ImageNet
+'''
+class ImageNet(Network):
+	mean_image=None
+	in_size=224
+	mean_image=None
+	def __init__(self,name,in_size=224):
+		super(ImageNet,self).__init__(name)
+		ImageNet.in_size = in_size
+	def Input(self,path):
+		img = Image.open(path)
+		print path 
+		print self.in_size
+		t = ImageTensor(img,filtered_image=filter(np.asarray(img)),
+						in_size=self.in_size)
+		t.use()
+
+
 
 	
 '''
@@ -107,6 +116,7 @@ class GoogLeNet(ImageNet):
 		ImageNet.mean_image[0] = 104
 		ImageNet.mean_image[1] = 117
 		ImageNet.mean_image[2] = 123
+		ImageNet.in_size = in_size
 
 		self.labels = np.loadtxt("misc/"+labels, str, delimiter="\t")
 
@@ -120,11 +130,10 @@ class GoogLeNet(ImageNet):
 		if x==None:
 			x=Tensor.context
 
-		x = x.content
-		result = self.forward(x)
+		_x = Variable(x.value, volatile=True)
+		result = self.forward(_x)
 		result = Variable(result.data) #Unchain 
 		t = ChainerTensor(result)
-		t.owner=self
 		t.use()
 
 		return t
@@ -141,6 +150,7 @@ class NetworkInNetwork(ImageNet):
 		self.func = model.nin.NIN()
 
 		ImageNet.mean_image = pickle.load(open(mean, 'rb'))
+		ImageNet.in_size = model.nin.insize
 
 		self.labels = np.loadtxt(labels, str, delimiter="\t")
 
@@ -164,7 +174,6 @@ class NetworkInNetwork(ImageNet):
 		_x = x.content
 		result = self.forward(_x)
 		t = ChainerTensor(result)
-		t.owner=self
 		t.use()
 
 		return t

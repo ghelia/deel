@@ -5,6 +5,14 @@ from deel.commands import *
 
 deel = Deel()
 
+CNN = GoogLeNet()
+
+CNN.Input("deel.png")
+CNN.classify()
+ShowLabels()
+
+
+"""
 InputBatch(train="data/train_lstm.tsv")
 
 CNN = GoogLeNet()
@@ -16,7 +24,7 @@ def trainer(x,t):
 	return RNN.backprop()
 
 BatchTrain(trainer)
-
+"""
 """
 nin = NetworkInNetwork()
 
@@ -29,9 +37,4 @@ def trainer(x,t):
 BatchTrain(trainer)
 """
 """
-CNN = GoogLeNet()
-
-i = Input("deel.png")
-CNN.classify()
-ShowLabels()
 """

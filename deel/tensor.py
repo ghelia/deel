@@ -20,6 +20,7 @@ import hashlib
 import datetime
 import sys
 import random
+from deel import *
 
 class Tensor(object):
 	""" A tensor """
@@ -41,17 +42,22 @@ class Tensor(object):
 	def get(self):
 		return self.value
 
+
+
 class ImageTensor(Tensor):
-	def __init__(	self,x,comment=''):
+	def __init__(	self,x,filtered_image=None,in_size=256,comment=''):
 		super(ImageTensor,self).__init__(
 				np.asarray(x).transpose(2, 0, 1),
 				comment=comment)
 		self.content = x
 		
-		image = filter(np.asarray(x))
+		if filtered_image==None:
+			filtered_image=np.asarray(x)
+		image = filtered_image
+		
 
 		x_batch = np.ndarray(
-				(1, 3, ImageNet.in_size,ImageNet.in_size), dtype=np.float32)
+				(1, 3, in_size,in_size), dtype=np.float32)
 		x_batch[0]=image
 
 		self.value=x_batch

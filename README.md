@@ -23,11 +23,13 @@ $ python test.py
 
 ####CNN classifier (done)
 ```python
+deel = Deel()
+
 CNN = GoogLeNet()
 
-Input("deel.png")
+CNN.Input("deel.png")
 CNN.classify()
-Show()
+ShowLabels()
 
 ```
 
