@@ -127,7 +127,7 @@ class GoogLeNet(ImageNet):
 		return F.softmax(y)
 
 	def classify(self,x=None):
-		if x==None:
+		if x is None:
 			x=Tensor.context
 
 		_x = Variable(x.value, volatile=True)
@@ -159,7 +159,7 @@ class NetworkInNetwork(ImageNet):
 			self.func.to_gpu()
 
 
-		if optimizer == None:
+		if optimizer is None:
 			self.optimizer = optimizers.MomentumSGD(Deel.optimizer_lr, momentum=0.9)
 		self.optimizer.setup(self.func)
 
@@ -169,7 +169,7 @@ class NetworkInNetwork(ImageNet):
 		return y
 
 	def classify(self,x=None):
-		if x==None:
+		if x is None:
 			x=Tensor.context
 
 		_x = x.content
@@ -181,7 +181,7 @@ class NetworkInNetwork(ImageNet):
 		return t
 
 	def train(self,x,t):
-		if x==None:
+		if x is None:
 			x=Tensor.context
 		_x = x.content
 		_t = t.content
@@ -214,7 +214,7 @@ class LSTM(Network):
 	def __init__(self,optimizer=None,vocab=None,n_input_units=1000,
 					n_units=650,grad_clip=5,bproplen=35):
 
-		if vocab==None:
+		if vocab is None:
 			vocab=BatchTrainer.vocab
 		self.vocab=vocab
 		n_vocab = len(vocab)
@@ -231,7 +231,7 @@ class LSTM(Network):
 			self.func.to_gpu()
 
 
-		if optimizer == None:
+		if optimizer is None:
 			self.optimizer = optimizers.SGD(lr=1.)
 		self.optimizer.setup(self.func)
 		self.clip = chainer.optimizer.GradientClipping(grad_clip)
@@ -258,7 +258,7 @@ class LSTM(Network):
 		return self.func(x)
 
 	def learn(self,str,x=None):
-		if x==None:
+		if x is None:
 			x=Tensor.context
 
 		_t = Deel.xp.asarray([self.vocab[str[0]]], dtype=np.int32)
@@ -284,7 +284,7 @@ class LSTM(Network):
 
 
 	def firstInput(self,t,x=None):
-		if x==None:
+		if x is None:
 			x=Tensor.context
 		_x = x.content
 		_t = t.content
@@ -298,7 +298,7 @@ class LSTM(Network):
 		return x
 
 	def train(self,t,x=None):
-		if x==None:
+		if x is None:
 			x=Tensor.context
 		_x = x.content
 		_t = t.content

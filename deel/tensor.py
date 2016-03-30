@@ -51,7 +51,7 @@ class ImageTensor(Tensor):
 				comment=comment)
 		self.content = x
 		
-		if filtered_image==None:
+		if filtered_image is None:
 			filtered_image=np.asarray(x)
 		image = filtered_image
 		
