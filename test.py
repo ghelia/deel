@@ -9,6 +9,7 @@ CNN = GoogLeNet()
 
 CNN.Input("deel.png")
 CNN.classify()
+Show()
 ShowLabels()
 
 
@@ -19,7 +20,7 @@ CNN = GoogLeNet()
 RNN = LSTM()
 
 def trainer(x,t):
-	CNN.classify() 
+	CNN.classify(x) 
 	RNN.learn(t)
 	return RNN.backprop()
 

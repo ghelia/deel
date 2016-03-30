@@ -55,7 +55,7 @@ CNN = GoogLeNet()
 RNN = LSTM()
 
 def trainer(x,t):
-	CNN.classify() 
+	CNN.classify(x) 
 	RNN.learn(t)
 	return RNN.backprop()
 
@@ -67,7 +67,7 @@ BatchTrain(trainer)
 CNN = GoogLeNet()
 DQN = DeepQLearning(output=4)
 
-def workout():
+def trainer():
 	#Realtime input image from Unity
 	InputUnity('unity.png') 
 	CNN.classify() 

@@ -134,6 +134,7 @@ class GoogLeNet(ImageNet):
 		result = self.forward(_x)
 		result = Variable(result.data) #Unchain 
 		t = ChainerTensor(result)
+		t.owner=self
 		t.use()
 
 		return t
@@ -174,6 +175,7 @@ class NetworkInNetwork(ImageNet):
 		_x = x.content
 		result = self.forward(_x)
 		t = ChainerTensor(result)
+		t.owner=self
 		t.use()
 
 		return t
