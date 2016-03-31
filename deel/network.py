@@ -2,7 +2,7 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import Variable
 from chainer.links import caffe
-from chainer import computational_graph
+from chainer import computational_graph as c
 from tensor import *
 from network import *
 from deel import *
@@ -25,7 +25,9 @@ import sys
 import random
 
 
+
 class Network(object):
+	t = None
 	def __init__(self,name):
 		self.name=name
 		self.func=None
@@ -149,15 +151,19 @@ class NetworkInNetwork(ImageNet):
 		super(NetworkInNetwork,self).__init__('NetworkInNetwork',in_size=227)
 
 		self.func = model.nin.NIN()
+		self.graph_generated=None
 
 		ImageNet.mean_image = pickle.load(open(mean, 'rb'))
 		ImageNet.in_size = self.func.insize
 
 		self.labels = np.loadtxt(labels, str, delimiter="\t")
 
+		self.t = ChainerTensor(Variable(Deel.xp.asarray([1.0])))
+
 		if Deel.gpu>=0:
 			self.func.to_gpu()
 
+		Deel.optimizer_lr=0.01
 
 		if optimizer is None:
 			self.optimizer = optimizers.MomentumSGD(Deel.optimizer_lr, momentum=0.9)
@@ -174,23 +180,11 @@ class NetworkInNetwork(ImageNet):
 
 		_x = x.content
 		result = self.forward(_x)
-		t = ChainerTensor(result)
-		t.owner=self
-		t.use()
-
-		return t
-
-	def train(self,x,t):
-		if x is None:
-			x=Tensor.context
-		_x = x.content
-		_t = t.content
-		loss= self.func(_x,_t)
-		loss.backward()
-		self.optimizer.update()
-		t.content.loss =loss
-		t.content.accuracy=self.func.accuracy		
-		return t
+		self.t.content=result
+		self.t.owner=self
+		self.t.use()
+		
+		return self.t
 
 
 	def backprop(self,t):
@@ -201,12 +195,21 @@ class NetworkInNetwork(ImageNet):
 
 		self.optimizer.zero_grads()
 		loss,accuracy = self.func.getLoss(x.content,t.content)
-		t.content.loss =loss
-		t.content.accuracy=accuracy
+
 		loss.backward()
 		self.optimizer.update()
+		
 
-		return t
+		if not self.graph_generated:
+			#with open('graph.dot', 'w') as o:
+			#	o.write(c.build_computational_graph((loss,), False).dump())
+			with open('graph.wo_split.dot', 'w') as o:
+				o.write(c.build_computational_graph((loss,), True).dump())
+			print('generated graph')
+			self.graph_generated = True
+
+
+		return loss.data,accuracy.data
 
 
 import model.lstm
@@ -264,10 +267,8 @@ class LSTM(Network):
 		_t = Deel.xp.asarray([self.vocab[str[0]]], dtype=np.int32)
 		t = ChainerTensor(Variable(_t))
 		self.firstInput(t)
-		#_x = x.content
 
-
-
+		
 		for j in range(len(str)-2):
 			_x = Deel.xp.asarray([self.vocab[str[j+1]]], dtype=np.int32)
 			x = ChainerTensor(Variable(_x))
@@ -276,10 +277,9 @@ class LSTM(Network):
 			_t = Deel.xp.asarray([self.vocab[str[j+2]]], dtype=np.int32)
 			t = ChainerTensor(Variable(_t))
 			self.train(t)
+		
 
-		print ('loss',self.accum_loss.data)
-
-		return x
+		return self.accum_loss.data
 
 
 
@@ -322,11 +322,11 @@ class LSTM(Network):
 		
 import collections
 def _sum_sqnorm(arr):
-    sq_sum = collections.defaultdict(float)
-    for x in arr:
-        with cuda.get_device(x) as dev:
-            x = x.ravel()
-            s = x.dot(x)
-            sq_sum[int(dev)] += s
-    return sum([float(i) for i in six.itervalues(sq_sum)])
+	sq_sum = collections.defaultdict(float)
+	for x in arr:
+		with cuda.get_device(x) as dev:
+			x = x.ravel()
+			s = x.dot(x)
+			sq_sum[int(dev)] += s
+	return sum([float(i) for i in six.itervalues(sq_sum)])
 

@@ -39,11 +39,11 @@ class Deel(object):
 	trainCount=0
 	lstm_train=None
 	def __init__(self,gpu=-1):
-		self.singleton = self
-		self.gpu=gpu
+		Deel.singleton = self
+		Deel.gpu=gpu
 		if gpu>=0:
 			cuda.get_device(gpu).use()
-			self.xp = cuda.cupy if gpu >= 0 else np
+			Deel.xp = cuda.cupy if gpu >= 0 else np
 
 	@staticmethod
 	def getInstance():

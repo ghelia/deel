@@ -80,6 +80,8 @@ def feed_data():
 	batchsize = BatchTrainer.batchsize
 	val_batchsize = BatchTrainer.val_batchsize
 	train_list = BatchTrainer.train_list
+	val_list = BatchTrainer.val_list
+
 
 	x_batch = np.ndarray(
 		(batchsize, 3, in_size, in_size), dtype=np.float32)
@@ -95,6 +97,7 @@ def feed_data():
 	BatchTrainer.data_q.put('train')
 	for epoch in six.moves.range(1, 1 + Deel.epoch):
 		print('epoch', epoch)
+		print('learning rate=%f'%Deel.optimizer_lr)
 		
 		perm = np.random.permutation(len(train_list))
 		for idx in perm:
@@ -120,7 +123,7 @@ def feed_data():
 					val_y_batch[j] = label
 					j += 1
 
-					if j == args.val_batchsize:
+					if j == val_batchsize:
 						for k, x in enumerate(val_batch_pool):
 							val_x_batch[k] = x.get()
 						BatchTrainer.data_q.put((val_x_batch.copy(), val_y_batch.copy()))
@@ -138,6 +141,7 @@ def log_result():
 	train_cur_loss = 0
 	train_cur_accuracy = 0
 	begin_at = time.time()
+	val_batchsize = BatchTrainer.val_batchsize
 	val_begin_at = None
 	while True:
 		result = BatchTrainer.res_q.get()
@@ -160,9 +164,10 @@ def log_result():
 			train_count += 1
 			duration = time.time() - begin_at
 			throughput = train_count * BatchTrainer.batchsize / duration
-			print(
-				'\rtrain {} updates ({} samples) time: {} ({} images/sec)'
-				.format(train_count, train_count * BatchTrainer.batchsize,
+			if train_count % 100 == 0:
+				print(
+					'\rtrain {} updates ({} samples) time: {} ({} images/sec)'
+					.format(train_count, train_count * BatchTrainer.batchsize,
 						datetime.timedelta(seconds=duration), throughput))
 
 			train_cur_loss += loss
@@ -176,19 +181,19 @@ def log_result():
 				train_cur_loss = 0
 				train_cur_accuracy = 0
 		else:
-			val_count += args.val_batchsize
+			val_count += val_batchsize
 			duration = time.time() - val_begin_at
 			throughput = val_count / duration
 			print(
 				'\rval   {} batches ({} samples) time: {} ({} images/sec)'
-				.format(val_count / args.val_batchsize, val_count,
+				.format(val_count / val_batchsize, val_count,
 						datetime.timedelta(seconds=duration), throughput))
 
 			val_loss += loss
 			val_accuracy += accuracy
 			if val_count == 50000:
-				mean_loss = val_loss * args.val_batchsize / 50000
-				mean_error = 1 - val_accuracy * args.val_batchsize / 50000
+				mean_loss = val_loss * val_batchsize / 50000
+				mean_error = 1 - val_accuracy * val_batchsize / 50000
 				print(json.dumps({'type': 'val', 'iteration': train_count,
 								  'error': mean_error, 'loss': mean_loss}))
 
@@ -215,17 +220,24 @@ def train_loop():
 
 		volatile = 'off' if train else 'on'
 
-		x = ChainerTensor(Variable(Deel.xp.asarray(inp[0]), volatile=volatile))
-		t = ChainerTensor(Variable(Deel.xp.asarray(inp[1]), volatile=volatile))
+		_x =Variable(Deel.xp.asarray(inp[0]), volatile=volatile)
+		_t =Variable(Deel.xp.asarray(inp[1]), volatile=volatile)
+		#print ""
+		#print "ref_begin",sys.getrefcount(_x)
 
-		result = workout(x,t)
-		loss = result.content.loss
-		accuracy = result.content.accuracy
+		x = ChainerTensor(_x)
+		t = ChainerTensor(_t)
+
+		#workout(x,t)
+
+		loss,accuracy = workout(x,t)
 
 		Deel.trainCount+=1
 
-		BatchTrainer.res_q.put((float(loss.data), float(accuracy.data)))
-		del x, t
+
+		BatchTrainer.res_q.put((float(loss), float(accuracy)))
+		del _x,_t
+		del x,t
 
 
 def cnn_lstm_trainer(workout):

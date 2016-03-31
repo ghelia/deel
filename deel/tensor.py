@@ -76,6 +76,9 @@ class ChainerTensor(Tensor):
 				x.data,
 				comment=comment)
 		self.content = x
+	def __del__(self):
+		del self.value
+		del self.content
 
 class LabelTensor(Tensor):
 	def __init__(	self,x,comment=''):
