@@ -35,9 +35,14 @@ class AgentServer(WebSocket):
 
 		dat = msgpack.unpackb(payload)
 		screen = Image.open(io.BytesIO(bytearray(dat['image'])))
-		image = np.asarray(screen).transpose(2, 0, 1)[::-1]
-		x = ImageTensor(image,filtered_image=image)
+		x = screen
+		print x
+		print type(x)
+		'''
+		print screen
+		x = ImageTensor(screen,filtered_image=np.asarray(screen).transpose(2, 0, 1)[::-1])
 		x.use()
+		'''
 		AgentServer.reward = dat['reward']
 		end_episode = dat['endEpisode']
 		# image.save(str(self.counter) + ".png")

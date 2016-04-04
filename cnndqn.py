@@ -6,9 +6,14 @@ from deel.agentServer import *
 deel = Deel()
 
 CNN = AlexNet()
+#CNN.Input("test.png")
+#CNN.classify()
+#ShowLabels()
 QNET = DQN()
 
 def trainer(x):
+	CNN.classify(x)
+	ShowLabels()
 	CNN.feature(x)
 	return QNET.actionAndLearn()
 

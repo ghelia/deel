@@ -40,7 +40,7 @@ class Agent(object):
         self.epsilon = 1.0  # Initial exploratoin rate
 
         # Pick a DQN from DQN_class
-        self.q_net = QNet(self.use_gpu)
+        #self.q_net = QNet(self.use_gpu)
 
     def agent_start(self, observation):
         # # Preprocess

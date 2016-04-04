@@ -92,10 +92,14 @@ class ImageNet(Network):
 			img = Image.open(x)
 			t = ImageTensor(img,filtered_image=filter(np.asarray(img)),
 							in_size=self.in_size)
+		elif hasattr(x,'_Image__transformer'):
+			t = ImageTensor(x,filtered_image=filter(np.asarray(x)),
+							in_size=self.in_size)
 		else:
 			t = ImageTensor(x,filtered_image=filter(np.asarray(x)),
 							in_size=self.in_size)
 		t.use()
+		return t
 
 __Model_cache={}
 
@@ -243,6 +247,7 @@ class AlexNet(ImageNet):
 
 		#ImageNet.mean_image = np.load(mean)
 		mean_image = np.load(mean)
+		ImageNet.mean_image=mean_image
 		
 		cropwidth = 256 - self.in_size
 		start = cropwidth // 2
@@ -267,6 +272,9 @@ class AlexNet(ImageNet):
 		if x is None:
 			x=Tensor.context
 
+		if not isinstance(x,ImageTensor):
+			x=self.Input(x)
+
 		_x = Variable(x.value, volatile=True)
 		result = self.forward(_x)
 		result = Variable(result.data) #Unchain 
@@ -280,7 +288,12 @@ class AlexNet(ImageNet):
 	def feature(self, x):
 		if x is None:
 			x=Tensor.context
-		camera_image = x.content
+		if not isinstance(x,ImageTensor):
+			x=self.Input(x)
+
+		image = x.value
+		'''
+		camera_image = x.value
 
 		cropwidth = 256 - self.in_size
 		start = cropwidth // 2
@@ -290,6 +303,8 @@ class AlexNet(ImageNet):
 		#image = np.asarray(camera_image).transpose(2, 0, 1)[::-1]
 		image = camera_image[:, start:stop, start:stop].astype(np.float32)
 		image -= self.mean_image
+
+		'''
 
 		self.x_batch[0] = image
 		xp = Deel.xp
