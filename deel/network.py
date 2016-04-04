@@ -87,33 +87,46 @@ class ImageNet(Network):
 	def __init__(self,name,in_size=224):
 		super(ImageNet,self).__init__(name)
 		ImageNet.in_size = in_size
-	def Input(self,path):
-		img = Image.open(path)
-		print path 
-		print self.in_size
-		t = ImageTensor(img,filtered_image=filter(np.asarray(img)),
-						in_size=self.in_size)
+	def Input(self,x):
+		if isinstance(x,str):
+			img = Image.open(x)
+			t = ImageTensor(img,filtered_image=filter(np.asarray(img)),
+							in_size=self.in_size)
+		else:
+			t = ImageTensor(x,filtered_image=filter(np.asarray(x)),
+							in_size=self.in_size)
 		t.use()
 
+__Model_cache={}
 
-
+def LoadCaffeModel(path):
+	print "Loading %s"%path
+	root, ext = os.path.splitext(path)
+	cashnpath = 'cash/'+hashlib.sha224(root).hexdigest()+".pkl"
+	if path in __Model_cache:
+		print "Cache hit"
+		func = __Model_cache[path]
+	if os.path.exists(cashnpath):
+		func = pickle.load(open(cashnpath,'rb'))
+	else:
+		print "Converting from %s"%path
+		func = caffe.CaffeFunction('misc/'+path)
+		pickle.dump(func, open(cashnpath, 'wb'))
+	__Model_cache[path]=func
+	return func
 	
+
 '''
 	GoogLeNet by Caffenet 
 '''
 class GoogLeNet(ImageNet):
-	def __init__(self,model='bvlc_googlenet.caffemodel',
+	def __init__(self,modelpath='bvlc_googlenet.caffemodel',
 					mean='ilsvrc_2012_mean.npy',
 					labels='labels.txt',in_size=224):
 		super(GoogLeNet,self).__init__('GoogLeNet',in_size)
 
-		root, ext = os.path.splitext(model)
-		cashnpath = 'cash/'+hashlib.sha224(root).hexdigest()+".pkl"
-		if os.path.exists(cashnpath):
-			self.func = pickle.load(open(cashnpath,'rb'))
-		else:
-			self.func = caffe.CaffeFunction('misc/'+model)
-			pickle.dump(self.func, open(cashnpath, 'wb'))
+		self.func = LoadCaffeModel(modelpath)
+
 		ImageNet.mean_image = np.ndarray((3, 256, 256), dtype=np.float32)
 		ImageNet.mean_image[0] = 104
 		ImageNet.mean_image[1] = 117
@@ -211,6 +224,88 @@ class NetworkInNetwork(ImageNet):
 
 		return loss.data,accuracy.data
 
+
+class AlexNet(ImageNet):
+	def __init__(self, model='bvlc_alexnet.caffemodel',mean='data/ilsvrc_2012_mean.npy',labels='data/labels.txt',optimizer=None):
+		super(AlexNet,self).__init__('AlexNet',in_size=227)
+
+
+		self.func = LoadCaffeModel(model)
+		self.labels = np.loadtxt(labels, str, delimiter="\t")
+
+		if Deel.gpu >= 0:
+			cuda.check_cuda_available()
+
+
+		if Deel.gpu >= 0:
+			cuda.get_device(self.gpu).use()
+			self.func.to_gpu()
+
+		#ImageNet.mean_image = np.load(mean)
+		mean_image = np.load(mean)
+		
+		cropwidth = 256 - self.in_size
+		start = cropwidth // 2
+		stop = start + self.in_size
+		self.mean_image = mean_image[:, start:stop, start:stop].copy()
+		#del self.func.layers[15:23] 
+		#self.outname = 'pool5'
+
+		self.batchsize = 1
+		self.x_batch = np.ndarray((self.batchsize, 3, self.in_size, self.in_size), dtype=np.float32)
+
+	def forward(self, x,layer='fc8'):
+		y, = self.func(inputs={'data': x}, outputs=[layer], train=False)
+		return y
+				
+	def predict(self, x,layer='fc8'):
+		y, = self.func(inputs={'data': x}, outputs=[layer], train=False)
+		return F.softmax(y)
+
+
+	def classify(self,x=None):
+		if x is None:
+			x=Tensor.context
+
+		_x = Variable(x.value, volatile=True)
+		result = self.forward(_x)
+		result = Variable(result.data) #Unchain 
+		t = ChainerTensor(result)
+		t.owner=self
+		t.use()
+
+		return t
+
+
+	def feature(self, camera_image):
+		cropwidth = 256 - self.in_size
+		start = cropwidth // 2
+		stop = start + self.in_size
+		#x_batch = np.ndarray((self.batchsize, 3, self.in_size, self.in_size), dtype=np.float32)
+
+		image = np.asarray(camera_image).transpose(2, 0, 1)[::-1]
+		image = image[:, start:stop, start:stop].astype(np.float32)
+		image -= self.mean_image
+
+		self.x_batch[0] = image
+		xp = Deel.xp
+		x_data = xp.asarray(self.x_batch)
+
+		if Deel.gpu >= 0:
+			x_data=cuda.to_gpu(x_data)
+		
+		x = chainer.Variable(x_data, volatile=True)
+		score = self.predict(x,layer='pool5')
+
+		if Deel.gpu >= 0:
+			score=cuda.to_cpu(score.data)
+			score = score.reshape(256*6*6)
+		else:
+			score = score.data.reshape(256*6*6)
+
+		return score
+
+	 
 
 import model.lstm
 class LSTM(Network):
