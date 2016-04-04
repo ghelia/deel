@@ -19,7 +19,7 @@ class Agent(object):
     cnn_feature_extractor = 'cash/alexnet.pickle'
 
     def agent_init(self, use_gpu):
-        self.use_gpu = use_gpu
+        self.use_gpu = Deel.gpu
         '''
         if os.path.exists(self.cnn_feature_extractor):
             print("loading... " + self.cnn_feature_extractor),

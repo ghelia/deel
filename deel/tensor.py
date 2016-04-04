@@ -52,7 +52,7 @@ class ImageTensor(Tensor):
 		self.content = x
 		
 		if filtered_image is None:
-			filtered_image=np.asarray(x)
+			filtered_image=_x
 		image = filtered_image
 		
 

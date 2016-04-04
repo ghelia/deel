@@ -277,14 +277,18 @@ class AlexNet(ImageNet):
 		return t
 
 
-	def feature(self, camera_image):
+	def feature(self, x):
+		if x is None:
+			x=Tensor.context
+		camera_image = x.content
+
 		cropwidth = 256 - self.in_size
 		start = cropwidth // 2
 		stop = start + self.in_size
 		#x_batch = np.ndarray((self.batchsize, 3, self.in_size, self.in_size), dtype=np.float32)
 
-		image = np.asarray(camera_image).transpose(2, 0, 1)[::-1]
-		image = image[:, start:stop, start:stop].astype(np.float32)
+		#image = np.asarray(camera_image).transpose(2, 0, 1)[::-1]
+		image = camera_image[:, start:stop, start:stop].astype(np.float32)
 		image -= self.mean_image
 
 		self.x_batch[0] = image
@@ -302,10 +306,169 @@ class AlexNet(ImageNet):
 			score = score.reshape(256*6*6)
 		else:
 			score = score.data.reshape(256*6*6)
+		print type(score)
+		#print score.data.shape
 
-		return score
+		score = chainer.Variable(score, volatile=True)
+
+		t = ChainerTensor(score)
+		t.owner=self
+		t.use()
+
+
+		return t
 
 	 
+import copy
+from rlglue.types import Action
+from agentServer import AgentServer
+import model.q_net
+class DQN(Network):
+	lastAction = Action()
+	policyFrozen = False
+	dim = 256 * 6 * 6
+	epsilonDelta = 1.0 / 10 ** 4
+	min_eps = 0.05
+
+	def __init__(self):		
+		super(DQN,self).__init__('Deep Q-learning Network')
+		self.func = model.q_net.QNet(Deel.gpu)
+		self.lastAction = Action()
+
+		self.time = 0
+		self.epsilon = 1.0  # Initial exploratoin rate
+
+	def actionAndLearn(self,x=None):
+		if x is None:
+			x=Tensor.context
+
+		if AgentServer.mode == 'start':
+			return self.start(x)
+		elif AgentServer.mode == 'step':
+			return self.step(x)
+		elif AgentServer.mode == 'end':
+			return self.end(x)
+
+	 
+	def start(self,x=None):
+		if x is None:
+			x=Tensor.context
+
+		obs_array = x.content.data
+		
+		# Initialize State
+		self.state = np.zeros((self.func.hist_size, self.dim), dtype=np.uint8)
+		self.state[0] = obs_array
+		state_ = np.asanyarray(self.state.reshape(1, self.func.hist_size, self.dim), dtype=np.float32)
+		if Deel.gpu >= 0:
+			state_ = cuda.to_gpu(state_)
+
+		# Generate an Action e-greedy
+		returnAction = Action()
+		action, Q_now = self.func.e_greedy(state_, self.epsilon)
+		returnAction.intArray = [action]
+
+		# Update for next step
+		self.lastAction = copy.deepcopy(returnAction)
+		self.last_state = self.state.copy()
+		self.last_observation = obs_array
+
+		return returnAction
+
+	def step(self,x=None):
+		if x is None:
+			x=Tensor.context
+
+		obs_array = x.content.data
+		obs_processed = np.maximum(obs_array, self.last_observation)  # Take maximum from two frames
+
+		# Compose State : 4-step sequential observation
+		if self.func.hist_size == 4:
+			self.state = np.asanyarray([self.state[1], self.state[2], self.state[3], obs_processed], dtype=np.uint8)
+		elif self.func.hist_size == 1:
+			self.state = np.asanyarray([obs_processed], dtype=np.uint8)
+		else:
+			print("self.DQN.hist_size err")
+
+		state_ = np.asanyarray(self.state.reshape(1, self.func.hist_size, self.dim), dtype=np.float32)
+		if Deel.gpu >= 0:
+			state_ = cuda.to_gpu(state_)
+
+		# Exploration decays along the time sequence
+		if self.policyFrozen is False:  # Learning ON/OFF
+			if self.func.initial_exploration < self.time:
+				self.epsilon -= self.epsilonDelta
+				if self.epsilon < self.min_eps:
+					self.epsilon = self.min_eps
+				eps = self.epsilon
+			else:  # Initial Exploation Phase
+				print "Initial Exploration : %d/%d steps" % (self.time, self.func.initial_exploration)
+				eps = 1.0
+		else:  # Evaluation
+			print "Policy is Frozen"
+			eps = 0.05
+
+		# Generate an Action by e-greedy action selection
+		returnAction = Action()
+		action, Q_now = self.func.e_greedy(state_, eps)
+		returnAction.intArray = [action]
+
+		#return returnAction, action, eps, Q_now, obs_array, returnAction
+
+		reward = AgentServer.reward
+
+		'''
+		Step after
+		'''
+		# Learning Phase
+		if self.policyFrozen is False:  # Learning ON/OFF
+			self.func.stock_experience(self.time, self.last_state, self.lastAction.intArray[0], reward, self.state, False)
+			self.func.experience_replay(self.time)
+
+		# Target model update
+		if self.func.initial_exploration < self.time and np.mod(self.time, self.func.target_model_update_freq) == 0:
+			print "########### MODEL UPDATED ######################"
+			self.func.target_model_update()
+
+		# Simple text based visualization
+		if Deel.gpu >= 0:
+			print 'Step %d/ACT %d/R %.1f/EPS %.6f/Q_max %3f' % (
+				self.time, self.func.action_to_index(action), reward, eps, np.max(Q_now.get()))
+		else:
+			print 'Step %d/ACT %d/R %.1f/EPS %.6f/Q_max %3f' % (
+				self.time, self.func.action_to_index(action), reward, eps, np.max(Q_now))
+
+		# Updates for next step
+		self.last_observation = obs_array
+
+		if self.policyFrozen is False:
+			self.lastAction = copy.deepcopy(returnAction)
+			self.last_state = self.state.copy()
+			self.time += 1
+		return returnAction
+
+	def dead(self,reward):
+		print 'episode finished: REWARD %.1f / EPSILON %.5f' % (reward, self.epsilon)
+
+		# Learning Phase
+		if self.policyFrozen is False:  # Learning ON/OFF
+			self.func.stock_experience(self.time, self.last_state, self.lastAction.intArray[0], reward, self.last_state,
+										True)
+			self.func.experience_replay(self.time)
+
+		# Target model update
+		if self.func.initial_exploration < self.time and np.mod(self.time, self.func.target_model_update_freq) == 0:
+			print "########### MODEL UPDATED ######################"
+			self.func.target_model_update()
+
+		# Time count
+		if self.policyFrozen is False:
+			self.time += 1		
+		
+
+
+
+
 
 import model.lstm
 class LSTM(Network):

@@ -6,13 +6,10 @@ from deel.agentServer import *
 deel = Deel()
 
 CNN = AlexNet()
+QNET = DQN()
 
-#CNN.Input("test.png")
-#CNN.classify()
-#ShowLabels()
-
-def trainer(x,t):
-	nin.classify(x)	
-	return nin.backprop(t)
+def trainer(x):
+	CNN.feature(x)
+	return QNET.actionAndLearn()
 
 StartAgent(trainer)
