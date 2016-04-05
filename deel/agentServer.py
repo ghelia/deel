@@ -28,6 +28,8 @@ class AgentServer(WebSocket):
 	trainer = None
 	mode='none'
 	reward=None
+	log_file = 'log_reward.log'
+	reward_sum = 0
 
 	def received_message(self, m):
 		print ("received")
@@ -36,16 +38,8 @@ class AgentServer(WebSocket):
 		dat = msgpack.unpackb(payload)
 		screen = Image.open(io.BytesIO(bytearray(dat['image'])))
 		x = screen
-		print x
-		print type(x)
-		'''
-		print screen
-		x = ImageTensor(screen,filtered_image=np.asarray(screen).transpose(2, 0, 1)[::-1])
-		x.use()
-		'''
 		AgentServer.reward = dat['reward']
 		end_episode = dat['endEpisode']
-		# image.save(str(self.counter) + ".png")
 
 		if not self.agent_initialized:
 			self.agent_initialized = True
@@ -54,9 +48,13 @@ class AgentServer(WebSocket):
 			AgentServer.mode='start'
 			#action = self.agent.agent_start(image)
 			action = workout(x)
+			self.send(str(action))
+			with open(self.log_file, 'w') as the_file:
+				the_file.write('cycle, episode_reward_sum \n')			
 		else:
 			self.thread_event.wait()
 			self.cycle_counter += 1
+			self.reward_sum += AgentServer.reward
 
 			if end_episode:
 				AgentServer.mode='end'
@@ -65,15 +63,20 @@ class AgentServer(WebSocket):
 				AgentServer.mode='start'
 				#action = self.agent.agent_start(image)  # TODO
 				action = workout(x)
+				self.send(str(action))
+				with open(self.log_file, 'a') as the_file:
+					the_file.write(str(self.cycle_counter) +
+								   ',' + str(self.reward_sum) + '\n')
+				self.reward_sum = 0
 
 			else:
 				#action, rl_action, eps, Q_now, obs_array, returnAction = self.agent.agent_step(reward, image)
 				#self.agent.agent_step_after(reward, image, rl_action, eps, Q_now, obs_array, returnAction)
 				AgentServer.mode='step'
-				action = workout(x)
+				ag,action, eps, Q_now, obs_array = workout(x)
+				self.send(str(action))
+				ag.step_after(AgentServer.reward, action, eps, Q_now, obs_array)
 
-		print str(action.intArray[0])
-		self.send(str(action.intArray[0]))
 		self.thread_event.set()
 
 def StartAgent(trainer=None,port=8765):

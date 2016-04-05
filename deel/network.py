@@ -24,7 +24,23 @@ import datetime
 import sys
 import random
 
+__Model_cache={}
 
+def LoadCaffeModel(path):
+	print "Loading %s"%path
+	root, ext = os.path.splitext(path)
+	cashnpath = 'cash/'+hashlib.sha224(root).hexdigest()+".pkl"
+	if path in __Model_cache:
+		print "Cache hit"
+		func = __Model_cache[path]
+	if os.path.exists(cashnpath):
+		func = pickle.load(open(cashnpath,'rb'))
+	else:
+		print "Converting from %s"%path
+		func = caffe.CaffeFunction('misc/'+path)
+		pickle.dump(func, open(cashnpath, 'wb'))
+	__Model_cache[path]=func
+	return func
 
 class Network(object):
 	t = None
@@ -101,23 +117,8 @@ class ImageNet(Network):
 		t.use()
 		return t
 
-__Model_cache={}
 
-def LoadCaffeModel(path):
-	print "Loading %s"%path
-	root, ext = os.path.splitext(path)
-	cashnpath = 'cash/'+hashlib.sha224(root).hexdigest()+".pkl"
-	if path in __Model_cache:
-		print "Cache hit"
-		func = __Model_cache[path]
-	if os.path.exists(cashnpath):
-		func = pickle.load(open(cashnpath,'rb'))
-	else:
-		print "Converting from %s"%path
-		func = caffe.CaffeFunction('misc/'+path)
-		pickle.dump(func, open(cashnpath, 'wb'))
-	__Model_cache[path]=func
-	return func
+
 	
 
 '''
@@ -276,7 +277,7 @@ class AlexNet(ImageNet):
 			x=self.Input(x)
 
 		_x = Variable(x.value, volatile=True)
-		result = self.forward(_x)
+		result = self.predict(_x)
 		result = Variable(result.data) #Unchain 
 		t = ChainerTensor(result)
 		t.owner=self
@@ -335,23 +336,25 @@ class AlexNet(ImageNet):
 
 	 
 import copy
-from rlglue.types import Action
 from agentServer import AgentServer
 import model.q_net
 class DQN(Network):
-	lastAction = Action()
+	#lastAction = Action()
 	policyFrozen = False
-	dim = 256 * 6 * 6
 	epsilonDelta = 1.0 / 10 ** 4
-	min_eps = 0.05
+	min_eps = 0.1
+
+	actions = [0,1,2]
+	image_feature_dim = 256 * 6 * 6
+	reward=None
 
 	def __init__(self):		
 		super(DQN,self).__init__('Deep Q-learning Network')
-		self.func = model.q_net.QNet(Deel.gpu)
-		self.lastAction = Action()
+		#self.lastAction = Action()
 
 		self.time = 0
 		self.epsilon = 1.0  # Initial exploratoin rate
+		self.func = model.q_net.QNet(Deel.gpu,self.actions,self.image_feature_dim)
 
 	def actionAndLearn(self,x=None):
 		if x is None:
@@ -372,16 +375,15 @@ class DQN(Network):
 		obs_array = x.content.data
 		
 		# Initialize State
-		self.state = np.zeros((self.func.hist_size, self.dim), dtype=np.uint8)
+		self.state = np.zeros((self.func.hist_size, self.image_feature_dim), dtype=np.uint8)
 		self.state[0] = obs_array
-		state_ = np.asanyarray(self.state.reshape(1, self.func.hist_size, self.dim), dtype=np.float32)
+		state_ = np.asanyarray(self.state.reshape(1, self.func.hist_size, self.image_feature_dim), dtype=np.float32)
 		if Deel.gpu >= 0:
 			state_ = cuda.to_gpu(state_)
 
 		# Generate an Action e-greedy
-		returnAction = Action()
 		action, Q_now = self.func.e_greedy(state_, self.epsilon)
-		returnAction.intArray = [action]
+		returnAction = action
 
 		# Update for next step
 		self.lastAction = copy.deepcopy(returnAction)
@@ -400,12 +402,14 @@ class DQN(Network):
 		# Compose State : 4-step sequential observation
 		if self.func.hist_size == 4:
 			self.state = np.asanyarray([self.state[1], self.state[2], self.state[3], obs_processed], dtype=np.uint8)
+		elif self.func.hist_size == 2:
+			self.state = np.asanyarray([self.state[1], obs_processed], dtype=np.uint8)
 		elif self.func.hist_size == 1:
 			self.state = np.asanyarray([obs_processed], dtype=np.uint8)
 		else:
 			print("self.DQN.hist_size err")
 
-		state_ = np.asanyarray(self.state.reshape(1, self.func.hist_size, self.dim), dtype=np.float32)
+		state_ = np.asanyarray(self.state.reshape(1, self.func.hist_size, self.image_feature_dim), dtype=np.float32)
 		if Deel.gpu >= 0:
 			state_ = cuda.to_gpu(state_)
 
@@ -424,56 +428,56 @@ class DQN(Network):
 			eps = 0.05
 
 		# Generate an Action by e-greedy action selection
-		returnAction = Action()
 		action, Q_now = self.func.e_greedy(state_, eps)
-		returnAction.intArray = [action]
 
-		#return returnAction, action, eps, Q_now, obs_array, returnAction
-
-		reward = AgentServer.reward
+		return self,action, eps, Q_now, obs_array
+	def step_after(self,reward, action, eps, q_now, obs_array):
 
 		'''
 		Step after
 		'''
+
+		self.reward = reward
 		# Learning Phase
 		if self.policyFrozen is False:  # Learning ON/OFF
-			self.func.stock_experience(self.time, self.last_state, self.lastAction.intArray[0], reward, self.state, False)
+			self.func.stock_experience(self.time, self.last_state, self.lastAction, reward, self.state, False)
 			self.func.experience_replay(self.time)
 
 		# Target model update
 		if self.func.initial_exploration < self.time and np.mod(self.time, self.func.target_model_update_freq) == 0:
-			print "########### MODEL UPDATED ######################"
+			print 'Model Updated'
 			self.func.target_model_update()
 
 		# Simple text based visualization
 		if Deel.gpu >= 0:
 			print 'Step %d/ACT %d/R %.1f/EPS %.6f/Q_max %3f' % (
-				self.time, self.func.action_to_index(action), reward, eps, np.max(Q_now.get()))
+				self.time, self.func.action_to_index(action), reward, eps, np.max(q_now.get()))
 		else:
 			print 'Step %d/ACT %d/R %.1f/EPS %.6f/Q_max %3f' % (
-				self.time, self.func.action_to_index(action), reward, eps, np.max(Q_now))
+				self.time, self.func.action_to_index(action), reward, eps, np.max(q_now))
 
 		# Updates for next step
 		self.last_observation = obs_array
 
 		if self.policyFrozen is False:
-			self.lastAction = copy.deepcopy(returnAction)
+			self.lastAction = copy.deepcopy(action)
 			self.last_state = self.state.copy()
 			self.time += 1
-		return returnAction
+		
 
-	def dead(self,reward):
+	def end(self,x):
+		reward = self.reward
 		print 'episode finished: REWARD %.1f / EPSILON %.5f' % (reward, self.epsilon)
 
 		# Learning Phase
 		if self.policyFrozen is False:  # Learning ON/OFF
-			self.func.stock_experience(self.time, self.last_state, self.lastAction.intArray[0], reward, self.last_state,
+			self.func.stock_experience(self.time, self.last_state, self.lastAction, reward, self.last_state,
 										True)
 			self.func.experience_replay(self.time)
 
 		# Target model update
 		if self.func.initial_exploration < self.time and np.mod(self.time, self.func.target_model_update_freq) == 0:
-			print "########### MODEL UPDATED ######################"
+			print 'Model Updated'
 			self.func.target_model_update()
 
 		# Time count
