@@ -168,4 +168,8 @@ class QNet:
         return self.enable_controller[index_of_action]
 
     def action_to_index(self, action):
+<<<<<<< HEAD
         return self.enable_controller.index(action)
+=======
+        return self.enable_controller.index(action)
+>>>>>>> f485ecc48e9a7f3714d65fbae3b37098ce7d58e4
