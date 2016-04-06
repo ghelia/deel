@@ -9,6 +9,11 @@ You can create your own deep neural network application in a second.
 ## Goal
 Describe deep neural network, training and using in simple syntax.
 
+## Dependency
+
+Chainer 1.7.1
+Python 2.7.1
+
 ## Install and test
 
 ```sh
