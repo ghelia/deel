@@ -20,7 +20,6 @@ class Root(object):
 
 workout= None
 class AgentServer(WebSocket):
-	agent = Agent()
 	agent_initialized = False
 	cycle_counter = 0
 	thread_event = threading.Event()
@@ -41,7 +40,7 @@ class AgentServer(WebSocket):
 
 		if not self.agent_initialized:
 			self.agent_initialized = True
-			self.agent.agent_init(Deel.gpu)
+			#self.agent.agent_init(Deel.gpu)
 
 			AgentServer.mode='start'
 			#action = self.agent.agent_start(image)
