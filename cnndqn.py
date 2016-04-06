@@ -6,10 +6,12 @@ from deel.agentServer import *
 deel = Deel()
 
 CNN = AlexNet()
-#CNN.Input("test.png")
-#CNN.classify()
-##ShowLabels()
-#exit()
+'''
+CNN.Input("test.png")
+CNN.classify()
+ShowLabels()
+exit()
+'''
 QNET = DQN()
 
 def trainer(x):

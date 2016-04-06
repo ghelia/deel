@@ -18,7 +18,6 @@ from PIL import Image
 #import six.moves.cPickle as pickle
 from six.moves import queue
 import pickle
-import cv2
 import hashlib
 import datetime
 import sys

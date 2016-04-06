@@ -15,7 +15,6 @@ import os.path
 from PIL import Image
 from six.moves import queue
 import pickle
-import cv2
 import hashlib
 import datetime
 import sys
