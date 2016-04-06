@@ -13,6 +13,7 @@ Describe deep neural network, training and using in simple syntax.
 
 ```sh
 $ git clone https://github.com/uei/deel.git
+$ pip install -r requirements.txt
 $ cd deel/data
 $ ./getCaltech101.sh
 $ cd ../misc
