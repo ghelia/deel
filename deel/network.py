@@ -236,7 +236,7 @@ class NetworkInNetwork(ImageNet):
 
 
 class AlexNet(ImageNet):
-	def __init__(self, model='bvlc_alexnet.caffemodel',mean='data/ilsvrc_2012_mean.npy',labels='data/labels.txt',optimizer=None):
+	def __init__(self, model='bvlc_alexnet.caffemodel',mean='misc/ilsvrc_2012_mean.npy',labels='misc/labels.txt',optimizer=None):
 		super(AlexNet,self).__init__('AlexNet',in_size=227)
 
 
