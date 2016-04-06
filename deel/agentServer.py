@@ -2,7 +2,6 @@ import cherrypy
 import argparse
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
 from ws4py.websocket import WebSocket
-from agent import *
 import msgpack
 import io
 from PIL import Image

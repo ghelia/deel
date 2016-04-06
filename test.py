@@ -1,4 +1,3 @@
-import cv2 
 from deel import *
 from deel.network import *
 from deel.commands import *
