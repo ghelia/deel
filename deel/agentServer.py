@@ -32,7 +32,6 @@ class AgentServer(WebSocket):
 	reward_sum = 0
 
 	def received_message(self, m):
-		print ("received")
 		payload = m.data
 
 		dat = msgpack.unpackb(payload)

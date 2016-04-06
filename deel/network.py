@@ -5,6 +5,8 @@ from chainer.links import caffe
 from chainer import computational_graph as c
 from tensor import *
 from network import *
+import copy
+
 from deel import *
 import chainer
 import json
@@ -18,7 +20,6 @@ import os.path
 from PIL import Image
 from six.moves import queue
 import pickle
-import cv2
 import hashlib
 import datetime
 import sys
@@ -81,11 +82,15 @@ def filter(image):
 		new_height = output_side_length * height / width
 	else:
 		new_width = output_side_length * width / height
-	resized_img = cv2.resize(image, (new_width, new_height))
+	#resized_img = cv2.resize(image, (new_width, new_height))
+	resized_img = Image.fromarray(np.uint8(image))
+	#resized_img = copy.deepcopy(image)
+	resized_img=resized_img.resize((new_width, new_height))
+	resized_img=np.asarray(resized_img)
 	height_offset = (new_height - output_side_length) / 2
 	width_offset = (new_width - output_side_length) / 2
 	image= resized_img[height_offset:height_offset + output_side_length,
-	width_offset:width_offset + output_side_length]
+						width_offset:width_offset + output_side_length]
 
 	image = image.transpose(2, 0, 1)
 	image = image[:, start:stop, start:stop].astype(np.float32)
@@ -293,19 +298,6 @@ class AlexNet(ImageNet):
 			x=self.Input(x)
 
 		image = x.value
-		'''
-		camera_image = x.value
-
-		cropwidth = 256 - self.in_size
-		start = cropwidth // 2
-		stop = start + self.in_size
-		#x_batch = np.ndarray((self.batchsize, 3, self.in_size, self.in_size), dtype=np.float32)
-
-		#image = np.asarray(camera_image).transpose(2, 0, 1)[::-1]
-		image = camera_image[:, start:stop, start:stop].astype(np.float32)
-		image -= self.mean_image
-
-		'''
 
 		self.x_batch[0] = image
 		xp = Deel.xp
@@ -322,9 +314,7 @@ class AlexNet(ImageNet):
 			score = score.reshape(256*6*6)
 		else:
 			score = score.data.reshape(256*6*6)
-		print type(score)
-		#print score.data.shape
-
+		
 		score = chainer.Variable(score, volatile=True)
 
 		t = ChainerTensor(score)
@@ -335,7 +325,6 @@ class AlexNet(ImageNet):
 		return t
 
 	 
-import copy
 from agentServer import AgentServer
 import model.q_net
 class DQN(Network):
