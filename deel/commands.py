@@ -20,7 +20,6 @@ from PIL import Image
 #import six.moves.cPickle as pickle
 from six.moves import queue
 import pickle
-import cv2
 import hashlib
 import datetime
 import sys
@@ -30,6 +29,8 @@ import random
 
 """Input something to context tensor"""
 def Input(x):
+	print "g"
+
 	if isinstance(x,str):
 		root, ext = os.path.splitext(x)
 		if ext=='.png' or ext=='.jpg' or ext=='.jpeg' or ext=='.gif':
@@ -339,6 +340,15 @@ def ShowLabels(x=None):
 	t = LabelTensor(x)
 
 	t.show()
+	return t
+
+def GetLabels(x=None):
+	if x==None:
+		x = Tensor.context
+
+	t = LabelTensor(x)
+
+	return t.content
 
 
 def Output(x=None,num_of_candidate=5):
