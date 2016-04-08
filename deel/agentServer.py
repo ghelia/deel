@@ -9,7 +9,7 @@ import threading
 from tensor import *
 import numpy as np
 from chainer import Variable, FunctionSet, optimizers
-
+from PIL import ImageOps
 
 class Root(object):
 	@cherrypy.expose
@@ -24,7 +24,7 @@ class Root(object):
 workout= None
 depth_image=None
 
-Depth_dim=32*32*3
+Depth_dim=32*32
 
 def DepthImage():
 	return Tensor(value=np.asarray(depth_image).reshape(Depth_dim))
@@ -64,7 +64,7 @@ class AgentServer(WebSocket):
 		reward = dat['reward']
 		end_episode = dat['endEpisode']
 
-		depth_image = Image.open(io.BytesIO(bytearray(dat['depth'])))
+		depth_image = ImageOps.grayscale(Image.open(io.BytesIO(bytearray(dat['depth']))))
 
 		if not self.agent_initialized:
 			self.agent_initialized = True
