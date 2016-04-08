@@ -36,13 +36,16 @@ class DQN(Network):
 	actions = None
 	reward=None
 
-	def __init__(self,given_dim=(256,6,6),actions=[0,1,2]):		
+	def __init__(self,given_dim=(256,6,6),actions=[0,1,2],depth_image_dim=0):		
 		super(DQN,self).__init__('Deep Q-learning Network')
 		self.actions = actions
 
+		self.depth_image_dim = depth_image_dim
 
 
-		self.image_feature_dim = getDim(given_dim)
+
+		self.image_feature_dim = getDim(given_dim)+depth_image_dim
+
  		print "shape:",self.image_feature_dim
 
 		self.time = 0
@@ -52,7 +55,6 @@ class DQN(Network):
 	def actionAndLearn(self,x=None):
 		if x is None:
 			x=Tensor.context
-		x.content
 
 		if AgentServer.mode == 'start':
 			return self.start(x)

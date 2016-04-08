@@ -6,6 +6,9 @@ import msgpack
 import io
 from PIL import Image
 import threading
+from tensor import *
+import numpy as np
+from chainer import Variable, FunctionSet, optimizers
 
 
 class Root(object):
@@ -19,6 +22,24 @@ class Root(object):
 		handler = cherrypy.request.ws_handler
 
 workout= None
+depth_image=None
+
+Depth_dim=32*32*3
+
+def DepthImage():
+	return Tensor(value=np.asarray(depth_image).reshape(Depth_dim))
+
+
+def Concat(y,x=None):
+	if x is None:
+		x = Tensor.context
+	x = Variable(np.r_[x.value,y.value], volatile=True)
+	t = ChainerTensor(x	)
+	t.use()
+	return t
+
+
+
 class AgentServer(WebSocket):
 	agent_initialized = False
 	cycle_counter = 0
@@ -30,6 +51,7 @@ class AgentServer(WebSocket):
 	reward_sum = 0
 
 	def received_message(self, m):
+		global depth_image
 		payload = m.data
 
 		dat = msgpack.unpackb(payload)
@@ -38,12 +60,12 @@ class AgentServer(WebSocket):
 		AgentServer.reward = dat['reward']
 		end_episode = dat['endEpisode']
 
+		depth_image = Image.open(io.BytesIO(bytearray(dat['depth'])))
+
 		if not self.agent_initialized:
 			self.agent_initialized = True
-			#self.agent.agent_init(Deel.gpu)
 
 			AgentServer.mode='start'
-			#action = self.agent.agent_start(image)
 			action = workout(x)
 			self.send(str(action))
 			with open(self.log_file, 'w') as the_file:

@@ -75,6 +75,7 @@ class ChainerTensor(Tensor):
 				x.data,
 				comment=comment)
 		self.content = x
+		self.value = x.data
 	def __del__(self):
 		del self.value
 		del self.content

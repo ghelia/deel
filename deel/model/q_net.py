@@ -9,7 +9,7 @@ import chainer.functions as F
 class QNet:
     # Hyper-Parameters
     gamma = 0.99  # Discount factor
-    initial_exploration = 100 #10**4  # Initial exploratoin. original: 5x10^4
+    initial_exploration = 10**4  # Initial exploratoin. original: 5x10^4
     replay_size = 32  # Replay (batch) size
     target_model_update_freq = 10**4  # Target update frequancy. original: 10^4
     data_size = 10**5  # Data size of history. original: 10^6
@@ -39,7 +39,7 @@ class QNet:
         self.optimizer.setup(self.model.collect_parameters())
 
         # History Data :  D=[s, a, r, s_dash, end_episode_flag]
-        self.D = [np.zeros((self.data_size, self.hist_size, self.dim), dtype=np.uint8),
+        self.d = [np.zeros((self.data_size, self.hist_size, self.dim), dtype=np.uint8),
                   np.zeros(self.data_size, dtype=np.uint8),
                   np.zeros((self.data_size, 1), dtype=np.int8),
                   np.zeros((self.data_size, self.hist_size, self.dim), dtype=np.uint8),
@@ -95,15 +95,15 @@ class QNet:
         data_index = time % self.data_size
 
         if episode_end_flag is True:
-            self.D[0][data_index] = state
-            self.D[1][data_index] = action
-            self.D[2][data_index] = reward
+            self.d[0][data_index] = state
+            self.d[1][data_index] = action
+            self.d[2][data_index] = reward
         else:
-            self.D[0][data_index] = state
-            self.D[1][data_index] = action
-            self.D[2][data_index] = reward
-            self.D[3][data_index] = state_dash
-        self.D[4][data_index] = episode_end_flag
+            self.d[0][data_index] = state
+            self.d[1][data_index] = action
+            self.d[2][data_index] = reward
+            self.d[3][data_index] = state_dash
+        self.d[4][data_index] = episode_end_flag
 
     def experience_replay(self, time):
         if self.initial_exploration < time:
@@ -119,11 +119,11 @@ class QNet:
             s_dash_replay = np.ndarray(shape=(self.replay_size, self.hist_size, self.dim), dtype=np.float32)
             episode_end_replay = np.ndarray(shape=(self.replay_size, 1), dtype=np.bool)
             for i in xrange(self.replay_size):
-                s_replay[i] = np.asarray(self.D[0][replay_index[i]], dtype=np.float32)
-                a_replay[i] = self.D[1][replay_index[i]]
-                r_replay[i] = self.D[2][replay_index[i]]
-                s_dash_replay[i] = np.array(self.D[3][replay_index[i]], dtype=np.float32)
-                episode_end_replay[i] = self.D[4][replay_index[i]]
+                s_replay[i] = np.asarray(self.d[0][replay_index[i]], dtype=np.float32)
+                a_replay[i] = self.d[1][replay_index[i]]
+                r_replay[i] = self.d[2][replay_index[i]]
+                s_dash_replay[i] = np.array(self.d[3][replay_index[i]], dtype=np.float32)
+                episode_end_replay[i] = self.d[4][replay_index[i]]
 
             if self.use_gpu >= 0:
                 s_replay = cuda.to_gpu(s_replay)
@@ -137,11 +137,11 @@ class QNet:
 
     def q_func(self, state):
         h4 = F.relu(self.model.l4(state))
-        q = self.model.q_value(h4)
+        q = self.model.q_value(h4 / 255.0)
         return q
 
     def q_func_target(self, state):
-        h4 = F.relu(self.model_target.l4(state))
+        h4 = F.relu(self.model_target.l4(state / 255.0))
         q = self.model_target.q_value(h4)
         return q
 
