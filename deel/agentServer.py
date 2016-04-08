@@ -33,7 +33,11 @@ def DepthImage():
 def Concat(y,x=None):
 	if x is None:
 		x = Tensor.context
-	x = Variable(np.r_[x.value,y.value], volatile=True)
+	#print x.value.mean()
+	#print y.value.sum()
+	dat = np.r_[x.value,y.value];
+	#print dat.sum();
+	x = Variable(dat, volatile=True)
 	t = ChainerTensor(x	)
 	t.use()
 	return t
@@ -57,7 +61,7 @@ class AgentServer(WebSocket):
 		dat = msgpack.unpackb(payload)
 		screen = Image.open(io.BytesIO(bytearray(dat['image'])))
 		x = screen
-		AgentServer.reward = dat['reward']
+		reward = dat['reward']
 		end_episode = dat['endEpisode']
 
 		depth_image = Image.open(io.BytesIO(bytearray(dat['depth'])))
@@ -73,7 +77,7 @@ class AgentServer(WebSocket):
 		else:
 			self.thread_event.wait()
 			self.cycle_counter += 1
-			self.reward_sum += AgentServer.reward
+			self.reward_sum += reward
 
 			if end_episode:
 				AgentServer.mode='end'
@@ -94,7 +98,7 @@ class AgentServer(WebSocket):
 				AgentServer.mode='step'
 				ag,action, eps, Q_now, obs_array = workout(x)
 				self.send(str(action))
-				ag.step_after(AgentServer.reward, action, eps, Q_now, obs_array)
+				ag.step_after(reward, action, eps, Q_now, obs_array)
 
 		self.thread_event.set()
 

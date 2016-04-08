@@ -12,7 +12,7 @@ QNET = DQN(CNN.layerDim(u'pool5'),actions=[0,1,2,3])
 
 #Hyper Parameters
 QNET.min_eps = 0.2
-QNET.epsilonDelta = 1.0 / 10 ** 4
+QNET.epsilonDelta = 1.0 / 10 ** 4 #original 1.0 / 10 ** 6
 QNET.func.gamma = 0.99 # Discount factor
 QNET.func.initial_exploration #10**4  # Initial exploratoin. original: 5x10^4
 QNET.func.replay_size = 32 # Replay (batch) size

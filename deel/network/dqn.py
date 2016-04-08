@@ -56,6 +56,7 @@ class DQN(Network):
 		if x is None:
 			x=Tensor.context
 
+
 		if AgentServer.mode == 'start':
 			return self.start(x)
 		elif AgentServer.mode == 'step':
@@ -70,6 +71,7 @@ class DQN(Network):
 
 
 		obs_array = x.content.data
+		#print "sum",obs_array.sum()
 
 		# Initialize State
 		self.state = np.zeros((self.func.hist_size, self.image_feature_dim), dtype=np.uint8)
@@ -94,6 +96,7 @@ class DQN(Network):
 			x=Tensor.context
 
 		obs_array = x.content.data
+		#print "sum",obs_array.sum()
 		obs_processed = np.maximum(obs_array, self.last_observation)  # Take maximum from two frames
 
 		# Compose State : 4-step sequential observation
@@ -147,11 +150,11 @@ class DQN(Network):
 
 		# Simple text based visualization
 		if Deel.gpu >= 0:
-			print 'Step %d/ACT %d/R %.1f/EPS %.6f/Q_max %3f' % (
-				self.time, self.func.action_to_index(action), reward, eps, np.max(q_now.get()))
+			q_max = np.max(q_now.get())
 		else:
-			print 'Step %d/ACT %d/R %.1f/EPS %.6f/Q_max %3f' % (
-				self.time, self.func.action_to_index(action), reward, eps, np.max(q_now))
+			q_max = np.max(q_now)
+		print 'Step %d/ACT %d/R %.1f/EPS %.6f/Q_max %3f' % (
+			self.time, self.func.action_to_index(action), reward, eps, q_max)
 
 		# Updates for next step
 		self.last_observation = obs_array
@@ -182,7 +185,7 @@ class DQN(Network):
 
 		# Time count
 		if self.policyFrozen is False:
-			self.time += 1		
+			self.time += 1
 
 		
 

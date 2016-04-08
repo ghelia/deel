@@ -111,7 +111,7 @@ class AlexNet(ImageNet):
 			x_data=cuda.to_gpu(x_data)
 		
 		x = chainer.Variable(x_data, volatile=True)
-		score = self.predict(x,layer=layer)
+		score = self.forward(x,layer=layer)
 
 		if Deel.gpu >= 0:
 			score=cuda.to_cpu(score.data)
@@ -121,7 +121,7 @@ class AlexNet(ImageNet):
 			dim = getDim(score.data.shape)
 			score = score.data.reshape(dim)
 		
-		score = chainer.Variable(score, volatile=True)
+		score = chainer.Variable(score*255.0, volatile=True)
 
 		t = ChainerTensor(score)
 		t.owner=self
