@@ -1,7 +1,8 @@
-import cv2 
 from deel import *
 from deel.network import *
+from deel.network.googlenet import *
 from deel.commands import *
+import cv2
 
 deel = Deel()
 
@@ -13,15 +14,10 @@ while True:
 	ret, img = cam.read()  
 	CNN.Input(img)
 	CNN.classify()
+	ShowLabels()
 
-	labels = GetLabels()
-	if labels[0][1] == 'Band':
-		print 'BAND'
-		cv2.imwrite('band.png',img)
-
-	cv2.imshow('cam', img)
+	#cv2.imshow('cam', img)
 	#if cv2.waitKey(10) > 0:
 	#	break
 cam.release()
 cv2.destroyAllWindows()
-
