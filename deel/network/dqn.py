@@ -39,14 +39,13 @@ class DQN(Network):
 	def __init__(self,given_dim=(256,6,6),actions=[0,1,2],depth_image_dim=0):		
 		super(DQN,self).__init__('Deep Q-learning Network')
 		self.actions = actions
+		self.age = 0
 
 		self.depth_image_dim = depth_image_dim
 
-
-
 		self.image_feature_dim = getDim(given_dim)+depth_image_dim
 
- 		print "shape:",self.image_feature_dim
+		print "shape:",self.image_feature_dim
 
 		self.time = 0
 		self.epsilon = 1.0  # Initial exploratoin rate
@@ -186,6 +185,16 @@ class DQN(Network):
 		# Time count
 		if self.policyFrozen is False:
 			self.time += 1
+
+		self.age += 1
+		if self.age % 10 ==0:
+			self.save('dqn%04d.pkl'%self.age)			
+
+	def save(self,filename):
+		pickle.dump(self.func.model, open(filename, 'wb')) 
+
+	def load(self,filename):
+		self.func.model = pickle.load(open(filename,'rb'))
 
 		
 
