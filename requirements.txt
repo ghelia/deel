@@ -11,3 +11,4 @@ Pillow>=2.8.1
 protobuf>=2.6.1
 six>=1.10.0
 ws4py>=0.3.4
+cv2>=1.0

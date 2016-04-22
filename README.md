@@ -11,15 +11,17 @@ Describe deep neural network, training and using in simple syntax.
 
 ## Dependency
 
-Chainer 1.7.1
+Chainer 1.7.1 or higher
 
 Python 2.7.1
+
+OpenCv 2.4.12 or higher
 
 ## Install and test
 
 ```sh
 $ git clone https://github.com/uei/deel.git
-$ pip install -r requirements.txt
+$ pip install -r deel/requirements.txt
 $ cd deel/data
 $ ./getCaltech101.sh
 $ cd ../misc
