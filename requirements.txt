@@ -1,4 +1,4 @@
-chainer==1.7.1
+chainer>=1.7.1
 chainer-libdnn>=2.1.0
 CherryPy>=5.1.0
 cycler>=0.9.0
