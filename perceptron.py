@@ -1,6 +1,5 @@
 from deel import *
 from deel.network import *
-from deel.network.googlenet import *
 from deel.commands import *
 import time
 deel = Deel(gpu=-1)
