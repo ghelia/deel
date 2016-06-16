@@ -2,11 +2,15 @@ from deel import *
 from deel.network import *
 from deel.network.googlenet import *
 from deel.commands import *
-import cv2
-
-deel = Deel()
+import time
+deel = Deel(gpu=0)
 
 CNN = GoogLeNet()
-CNN.Input("deel.png")
-CNN.classify()
+x=CNN.Input("deel.png")
+start = time.clock()
+print "start"
+for i in range(100):
+	CNN.classify(x)
+end = time.clock()
+print start-end
 ShowLabels()

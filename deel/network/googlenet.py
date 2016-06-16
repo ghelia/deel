@@ -37,6 +37,7 @@ class GoogLeNet(ImageNet):
 		super(GoogLeNet,self).__init__('GoogLeNet',in_size)
 
 		self.func = LoadCaffeModel(modelpath)
+		xp = Deel.xp
 
 		ImageNet.mean_image = np.ndarray((3, 256, 256), dtype=np.float32)
 		ImageNet.mean_image[0] = 104
@@ -46,7 +47,7 @@ class GoogLeNet(ImageNet):
 
 		self.labels = np.loadtxt("misc/"+labels, str, delimiter="\t")
 		self.batchsize = 1
-		self.x_batch = np.ndarray((self.batchsize, 3, self.in_size, self.in_size), dtype=np.float32)
+		self.x_batch = xp.ndarray((self.batchsize, 3, self.in_size, self.in_size), dtype=np.float32)
 
 	def forward(self,x):
 		y, = self.func(inputs={'data': x}, outputs=['loss3/classifier'],
@@ -63,10 +64,25 @@ class GoogLeNet(ImageNet):
 		if x is None:
 			x=Tensor.context
 
-		_x = Variable(x.value, volatile=True)
-		result = self.forward(_x)
-		result = Variable(result.data) #Unchain 
-		t = ChainerTensor(result)
+		if not isinstance(x,ImageTensor):
+			x=self.Input(x)
+
+		image = x.value
+		self.x_batch = image
+		xp = Deel.xp
+		x_data = xp.asarray(self.x_batch)
+
+		if Deel.gpu >= 0:
+			x_data=cuda.to_gpu(x_data)
+		
+		x = chainer.Variable(x_data, volatile=True)
+		score = self.forward(x)
+
+		if Deel.gpu >= 0:
+			score.data=cuda.to_cpu(score.data)
+
+		score = Variable(score.data) #Unchain 
+		t = ChainerTensor(score)
 		t.owner=self
 		t.use()
 
