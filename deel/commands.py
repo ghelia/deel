@@ -63,7 +63,6 @@ def read_image(path, center=False, flip=False):
 		left = random.randint(0, cropwidth - 1)
 	bottom = ImageNet.in_size + top
 	right = ImageNet.in_size + left
-
 	image = image[:, top:bottom, left:right].astype(np.float32)
 	image -= ImageNet.mean_image[:, top:bottom, left:right]
 	image /= 255

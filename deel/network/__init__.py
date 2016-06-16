@@ -85,6 +85,9 @@ def filter(image):
 	target_shape = (256, 256)
 	output_side_length=256
 
+	xp = Deel.xp
+
+
 	height, width, depth = image.shape
 	new_height = output_side_length
 	new_width = output_side_length
@@ -93,18 +96,20 @@ def filter(image):
 	else:
 		new_width = output_side_length * width / height
 	#resized_img = cv2.resize(image, (new_width, new_height))
-	resized_img = Image.fromarray(np.uint8(image))
+	resized_img = Image.fromarray(xp.uint8(image.get()))
 	#resized_img = copy.deepcopy(image)
 	resized_img=resized_img.resize((new_width, new_height))
-	resized_img=np.asarray(resized_img)
+	resized_img=xp.asarray(resized_img)
 	height_offset = (new_height - output_side_length) / 2
 	width_offset = (new_width - output_side_length) / 2
 	image= resized_img[height_offset:height_offset + output_side_length,
 						width_offset:width_offset + output_side_length]
 
 	image = image.transpose(2, 0, 1)
-	image = image[:, start:stop, start:stop].astype(np.float32)
+	image = image[:, start:stop, start:stop].astype(xp.float32)
 	image -= mean_image
+
+
 
 	return image
 
@@ -118,20 +123,20 @@ class Perceptron(Chain,Network):
 		for i in range(len(layers)-1):
 			layer = L.Linear(layers[i],layers[i+1])
 			self.layers['l'+str(i)]=layer
-		print type(layers)
 		self.model = Chain(**self.layers)
+		if Deel.gpu >=0:
+			self.model = self.model.to_gpu(Deel.gpu)
 		self.optimizer = optimizers.MomentumSGD(lr=0.01,momentum=0.9)
 		self.optimizer.setup(self.model)
 		self.activation = activation
 		
 
-		
-
-	def forward(self,x=None):
+	def forward(self,x=None,t=None):
 		if x is None:
 			x=Tensor.context
+		xp = Deel.xp
 
-		h = Variable(x.value)
+		h = Variable(xp.asarray(x.value,dtype=xp.float32))
 
 		self.optimizer.zero_grads()
 		for i in range(len(self.layers)):
@@ -145,10 +150,12 @@ class Perceptron(Chain,Network):
 	def backprop(self,t,x=None):
 		if x is None:
 			x=Tensor.context
-		loss = F.mean_squared_error(x.content,Variable(t.content))
+		#loss = F.mean_squared_error(x.content,t.content)
+		loss = F.softmax_cross_entropy(x.content,t.content)
 		loss.backward()
+		accuracy = F.accuracy(x.content,t.content)
 		self.optimizer.update()
-		return loss.data
+		return loss.data,accuracy.data
 	
 
 
@@ -163,15 +170,16 @@ class ImageNet(Network):
 		super(ImageNet,self).__init__(name)
 		ImageNet.in_size = in_size
 	def Input(self,x):
+		xp = Deel.xp
 		if isinstance(x,str):
 			img = Image.open(x)
-			t = ImageTensor(img,filtered_image=filter(np.asarray(img)),
+			t = ImageTensor(img,filtered_image=filter(xp.asarray(img)),
 							in_size=self.in_size)
 		elif hasattr(x,'_Image__transformer'):
-			t = ImageTensor(x,filtered_image=filter(np.asarray(x)),
+			t = ImageTensor(x,filtered_image=filter(xp.asarray(x)),
 							in_size=self.in_size)
 		else:
-			t = ImageTensor(x,filtered_image=filter(np.asarray(x)),
+			t = ImageTensor(x,filtered_image=filter(xp.asarray(x)),
 							in_size=self.in_size)
 		t.use()
 		return t

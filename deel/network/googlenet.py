@@ -65,7 +65,7 @@ class GoogLeNet(ImageNet):
 			x=Tensor.context
 
 		if not isinstance(x,ImageTensor):
-			x=self.Input(x)
+			x=Input(x)
 
 		image = x.value
 		self.x_batch = image
@@ -89,14 +89,23 @@ class GoogLeNet(ImageNet):
 		return t
 
 	def layerDim(self, layer='inception_5b/pool_proj'):
+		xp = Deel.xp
+		ImageNet.mean_image = xp.ndarray((3, 256, 256), dtype=xp.float32)
+		ImageNet.mean_image[0] = 104
+		ImageNet.mean_image[1] = 117
+		ImageNet.mean_image[2] = 123
+
 		image = self.Input('deel.png').value
 		self.x_batch[0] = image
-		xp = Deel.xp
 		x_data = xp.asarray(self.x_batch)
 		x = chainer.Variable(x_data, volatile=True)
 
 		y, = self.func(inputs={'data': x}, outputs=[layer], train=False)
 
+		ImageNet.mean_image = np.ndarray((3, 256, 256), dtype=np.float32)
+		ImageNet.mean_image[0] = 104
+		ImageNet.mean_image[1] = 117
+		ImageNet.mean_image[2] = 123
 		return y.data.shape
 
 	def feature(self, x,layer=u'inception_5b/pool_proj'):
@@ -126,6 +135,33 @@ class GoogLeNet(ImageNet):
 			score = score.data.reshape(dim)
 		
 		score = chainer.Variable(score*255.0, volatile=True)
+
+		t = ChainerTensor(score)
+		t.owner=self
+		t.use()
+
+	def batch_feature(self, x,layer=u'inception_5b/pool_proj'):
+		if x is None:
+			x=Tensor.context
+
+		image = x.value
+
+		self.x_batch= image
+		xp = Deel.xp
+		x_data = xp.asarray(self.x_batch)
+
+		if Deel.gpu >= 0:
+			x_data=cuda.to_gpu(x_data)
+		
+		x = chainer.Variable(x_data, volatile=True)
+		score = self.predict(x,layer=layer)
+
+		if Deel.gpu >= 0:
+			score=cuda.to_cpu(score.data)
+		else:
+			dim = getDim(score.data.shape)
+		
+		score = chainer.Variable(score, volatile=True)
 
 		t = ChainerTensor(score)
 		t.owner=self
