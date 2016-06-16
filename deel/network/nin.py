@@ -29,7 +29,7 @@ import random
 '''
 	Network in Network by Chainer 
 '''
-import model.nin
+import deel.model.nin
 
 
 class NetworkInNetwork(ImageNet):

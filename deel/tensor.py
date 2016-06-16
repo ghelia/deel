@@ -28,7 +28,10 @@ class Tensor(object):
 
 	def __init__(	self,value=np.array([1], dtype=np.float32),
 					category='scalar',comment=''):
-		self.content = np.array(value,dtype=np.float32)
+		if type(value)=='numpy.ndarray':
+			self.content = np.array(value,dtype=np.float32)
+		else:
+			self.content = value
 		self.shape = self.content.shape
 		self.value = self.content 
 		self.comment = comment
@@ -55,8 +58,10 @@ class ImageTensor(Tensor):
 		image = filtered_image
 		
 
-		x_batch = np.ndarray(
-				(1, 3, in_size,in_size), dtype=np.float32)
+		xp = Deel.xp
+		x_batch = xp.ndarray(
+				(1, 3, in_size,in_size), dtype=xp.float32)
+
 		x_batch[0]=image
 
 		self.value=x_batch
@@ -77,8 +82,10 @@ class ChainerTensor(Tensor):
 		self.content = x
 		self.value = x.data
 	def __del__(self):
-		del self.value
-		del self.content
+		if hasattr(self,'value'):
+			del self.value
+		if hasattr(self,'content'):
+			del self.content
 
 class LabelTensor(Tensor):
 	def __init__(	self,x,comment=''):
