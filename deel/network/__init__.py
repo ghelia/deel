@@ -1,6 +1,6 @@
 import chainer.functions as F
 import chainer.links as L
-from chainer import Variable
+from chainer import Variable,optimizers,Chain
 from chainer.links import caffe
 from chainer import computational_graph as c
 from deel.tensor import *
@@ -49,6 +49,8 @@ def LoadCaffeModel(path):
 		func = caffe.CaffeFunction('misc/'+path)
 		pickle.dump(func, open(cashnpath, 'wb'))
 	__Model_cache[path]=func
+	if Deel.gpu>=0:
+		func = func.to_gpu(Deel.gpu)
 	return func
 
 class Network(object):
@@ -105,6 +107,50 @@ def filter(image):
 	image -= mean_image
 
 	return image
+
+'''
+	Perceptron
+'''
+class Perceptron(Chain,Network):
+	def __init__(self,name="perceptron",layers=(1000,1000),optimizer=None,activation=F.sigmoid):
+		Network.__init__(self,name)
+		self.layers = {}
+		for i in range(len(layers)-1):
+			layer = L.Linear(layers[i],layers[i+1])
+			self.layers['l'+str(i)]=layer
+		print type(layers)
+		self.model = Chain(**self.layers)
+		self.optimizer = optimizers.MomentumSGD(lr=0.01,momentum=0.9)
+		self.optimizer.setup(self.model)
+		self.activation = activation
+		
+
+		
+
+	def forward(self,x=None):
+		if x is None:
+			x=Tensor.context
+
+		h = Variable(x.value)
+
+		self.optimizer.zero_grads()
+		for i in range(len(self.layers)):
+			h = self.activation(self.layers['l'+str(i)](h))
+
+		h = ChainerTensor(h)
+		h.use()
+
+		return h
+
+	def backprop(self,t,x=None):
+		if x is None:
+			x=Tensor.context
+		loss = F.mean_squared_error(x.content,Variable(t.content))
+		loss.backward()
+		self.optimizer.update()
+		return loss.data
+	
+
 
 '''
 	ImageNet

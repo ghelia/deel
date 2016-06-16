@@ -28,9 +28,9 @@ class Tensor(object):
 
 	def __init__(	self,value=np.array([1], dtype=np.float32),
 					category='scalar',comment=''):
-		self.content = value
-		self.shape = value.shape
-		self.value = value
+		self.content = np.array(value,dtype=np.float32)
+		self.shape = self.content.shape
+		self.value = self.content 
 		self.comment = comment
 		self.output = None
 		self.owner = None
