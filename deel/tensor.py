@@ -73,6 +73,9 @@ class ImageTensor(Tensor):
 		img = Image.fromarray(tmp)
 		img.show()
 
+	def __del__(self):
+		del self.value
+		del self.content
 
 class ChainerTensor(Tensor):
 	def __init__(	self,x,comment=''):
@@ -82,10 +85,8 @@ class ChainerTensor(Tensor):
 		self.content = x
 		self.value = x.data
 	def __del__(self):
-		if hasattr(self,'value'):
-			del self.value
-		if hasattr(self,'content'):
-			del self.content
+		del self.value
+		del self.content
 
 class LabelTensor(Tensor):
 	def __init__(	self,x,comment=''):

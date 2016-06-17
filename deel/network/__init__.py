@@ -136,11 +136,12 @@ class Perceptron(Chain,Network):
 			x=Tensor.context
 		xp = Deel.xp
 
-		h = Variable(xp.asarray(x.value,dtype=xp.float32))
+		volatile = 'off' if Deel.train else 'on'
+		h = Variable(xp.asarray(x.value,dtype=xp.float32),volatile=volatile)
 
 		self.optimizer.zero_grads()
 		for i in range(len(self.layers)):
-			h = self.activation(self.layers['l'+str(i)](h))
+			h = F.dropout(self.activation(self.layers['l'+str(i)](h)),train=Deel.train)
 
 		h = ChainerTensor(h)
 		h.use()
@@ -152,7 +153,8 @@ class Perceptron(Chain,Network):
 			x=Tensor.context
 		#loss = F.mean_squared_error(x.content,t.content)
 		loss = F.softmax_cross_entropy(x.content,t.content)
-		loss.backward()
+		if  Deel.train:
+			loss.backward()
 		accuracy = F.accuracy(x.content,t.content)
 		self.optimizer.update()
 		return loss.data,accuracy.data

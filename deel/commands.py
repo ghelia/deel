@@ -129,7 +129,7 @@ def feed_data():
 						BatchTrainer.data_q.put((val_x_batch.copy(), val_y_batch.copy()))
 						j = 0
 				BatchTrainer.data_q.put('train')
-		Deel.optimizer_lr *= 0.97
+		Deel.optimizer_lr *= 0.98
 
 	pool.close()
 	pool.join()
@@ -217,6 +217,8 @@ def train_loop():
 			BatchTrainer.res_q.put('val')
 			train=False
 			continue
+
+		Deel.train = train
 
 		volatile = 'off' if train else 'on'
 

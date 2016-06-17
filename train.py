@@ -1,5 +1,5 @@
 from deel import *
-from deel.network import *
+from deel.network.nin import *
 from deel.commands import *
 
 deel = Deel()

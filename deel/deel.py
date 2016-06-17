@@ -26,7 +26,7 @@ import random
 
 class Deel(object):
 	singlton = None
-	train = None
+	train = False
 	val = None
 	root = '.'
 	epoch=100
@@ -55,7 +55,7 @@ class Deel(object):
 '''
 class BatchTrainer(object):
 	batchsize=32
-	val_batchsize=250
+	val_batchsize=32
 	data_q=None
 	res_q=None
 	loaderjob=20
