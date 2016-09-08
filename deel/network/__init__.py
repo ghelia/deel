@@ -77,11 +77,11 @@ class Network(object):
 		return self.name
 
 
-def filter(image):
+def filter(image,flip=False,center=True):
 	cropwidth = 256 - ImageNet.in_size
-	start = cropwidth // 2
-	stop = start + ImageNet.in_size
-	mean_image = ImageNet.mean_image[:, start:stop, start:stop].copy()
+	#start = cropwidth // 2
+	#stop = start + ImageNet.in_size
+	#mean_image = ImageNet.mean_image[:, start:stop, start:stop].copy()
 	target_shape = (256, 256)
 	output_side_length=256
 
@@ -95,9 +95,7 @@ def filter(image):
 		new_height = output_side_length * height / width
 	else:
 		new_width = output_side_length * width / height
-	#resized_img = cv2.resize(image, (new_width, new_height))
-	resized_img = Image.fromarray(xp.uint8(image.get()))
-	#resized_img = copy.deepcopy(image)
+	resized_img = Image.fromarray(xp.uint8(image))
 	resized_img=resized_img.resize((new_width, new_height))
 	resized_img=xp.asarray(resized_img)
 	height_offset = (new_height - output_side_length) / 2
@@ -106,8 +104,20 @@ def filter(image):
 						width_offset:width_offset + output_side_length]
 
 	image = image.transpose(2, 0, 1)
-	image = image[:, start:stop, start:stop].astype(xp.float32)
-	image -= mean_image
+	#image = image[:, start:stop, start:stop].astype(xp.float32)
+	#image -= mean_image
+	if center:
+		top = left = cropwidth / 2
+	else:
+		top = random.randint(0, cropwidth - 1)
+		left = random.randint(0, cropwidth - 1)
+	bottom = ImageNet.in_size + top
+	right = ImageNet.in_size + left
+	image = image[:, top:bottom, left:right].astype(np.float32)
+	image -= ImageNet.mean_image[:, top:bottom, left:right]
+	image /= 255
+	if flip and random.randint(0, 1) == 0:
+		image = image[:, :, ::-1]
 
 
 
