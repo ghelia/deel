@@ -24,7 +24,7 @@ import hashlib
 import datetime
 import sys
 import random
-
+import cv2
 
 
 """Input something to context tensor"""
@@ -55,21 +55,47 @@ def load(path, root):
 
 def read_image(path, center=False, flip=False):
 	cropwidth = 256 - ImageNet.in_size
-	image = np.asarray(Image.open(path)).transpose(2, 0, 1)
-	if center:
-		top = left = cropwidth / 2
-	else:
-		top = random.randint(0, cropwidth - 1)
-		left = random.randint(0, cropwidth - 1)
-	bottom = ImageNet.in_size + top
-	right = ImageNet.in_size + left
-	image = image[:, top:bottom, left:right].astype(np.float32)
-	image -= ImageNet.mean_image[:, top:bottom, left:right]
-	image /= 255
-	if flip and random.randint(0, 1) == 0:
-		return image[:, :, ::-1]
-	else:
-		return image
+	try:
+		image = np.asarray(Image.open(path)).transpose(2, 0, 1)
+		if center:
+			top = left = cropwidth / 2
+		else:
+			top = random.randint(0, cropwidth - 1)
+			left = random.randint(0, cropwidth - 1)
+		bottom = ImageNet.in_size + top
+		right = ImageNet.in_size + left
+		image = image[:, top:bottom, left:right].astype(np.float32)
+		image -= ImageNet.mean_image[:, top:bottom, left:right]
+		image /= 255
+		if flip and random.randint(0, 1) == 0:
+			return image[:, :, ::-1]
+		else:
+			return image
+	except ValueError:
+		print "---- Read_Image Value Error ----"
+		print path
+
+		return None
+
+
+def batch_read_and_feed(batch):
+	batchsize = BatchTrainer.batchsize
+	in_size = BatchTrainer.in_size
+	x_batch = np.ndarray(
+		(batchsize, 3, in_size, in_size), dtype=np.float32)
+	y_batch = np.ndarray((batchsize,), dtype=np.int32)
+	i=0
+	for data in batch:
+		path,label = data
+		#img = read_image (path, False, True)
+		img = filter(np.asarray(cv2.imread(path,cv2.IMREAD_COLOR)),flip=True,center=False)
+		if img is not None:
+			x_batch[i] = img
+			y_batch[i] = label
+			i+=1
+
+	return x_batch,y_batch
+
 
 def feed_data():
 	global optimizer_lr
@@ -95,23 +121,26 @@ def feed_data():
 	val_batch_pool = [None] * val_batchsize
 	pool = multiprocessing.Pool(BatchTrainer.loaderjob)
 	BatchTrainer.data_q.put('train')
+
+	thleads = 1
 	for epoch in six.moves.range(1, 1 + Deel.epoch):
 		print('epoch', epoch)
 		print('learning rate=%f'%Deel.optimizer_lr)
 		
-		perm = np.random.permutation(len(train_list))
-		for idx in perm:
-			path, label = train_list[idx]
-			batch_pool[i] = pool.apply_async(read_image, (path, False, True))
-			y_batch[i] = label
-			i += 1
+		#perm = np.random.permutation(len(train_list))
+		random.shuffle(train_list)
 
-			if i == BatchTrainer.batchsize:
+		for idx in range(0,len(train_list)-batchsize*thleads,batchsize*thleads):
+			#paths, labels = train_list[idx:idx+batchsize]
+			#print paths
 
-				for j, x in enumerate(batch_pool):
-					x_batch[j] = x.get()
+			r=[pool.apply_async(batch_read_and_feed, 
+					(train_list[idx+i*batchsize:
+								idx+i*batchsize+batchsize],)) 
+					for i in range(thleads)]
+			for res in r:
+				x_batch,y_batch = res.get()
 				BatchTrainer.data_q.put((x_batch.copy(), y_batch.copy()))
-				i = 0
 
 			count += 1
 			if count % 100000 == 0:
@@ -164,7 +193,7 @@ def log_result():
 			train_count += 1
 			duration = time.time() - begin_at
 			throughput = train_count * BatchTrainer.batchsize / duration
-			if train_count % 100 == 0:
+			if train_count % 1 == 0:
 				print(
 					'\rtrain {} updates ({} samples) time: {} ({} images/sec)'
 					.format(train_count, train_count * BatchTrainer.batchsize,
@@ -172,7 +201,7 @@ def log_result():
 
 			train_cur_loss += loss
 			train_cur_accuracy += accuracy
-			if train_count % 1000 == 0:
+			if train_count % 1 == 0:
 				mean_loss = train_cur_loss / 1000
 				mean_error = 1 - train_cur_accuracy / 1000
 				print(json.dumps({'type': 'train', 'iteration': train_count,
