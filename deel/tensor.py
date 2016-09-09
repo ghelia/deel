@@ -97,7 +97,7 @@ class LabelTensor(Tensor):
 		out.sort(cmp=lambda a, b: cmp(a[0], b[0]), reverse=True)
 		self.content = out
 
-	def show(self,num_of_candidate=5):
+	def show(self,num_of_candidate=20):
 		for rank, (score, name) in enumerate(self.content[:num_of_candidate], start=1):
 			print('#%d | %s | %4.1f%%' % (rank, name, score * 100))	
 

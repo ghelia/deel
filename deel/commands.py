@@ -98,7 +98,7 @@ def batch_read_and_feed(batch):
 
 
 def feed_data():
-	global optimizer_lr
+	global optimizer_lr,checkout
 	# Data feeder
 	i = 0
 	count = 0
@@ -143,7 +143,8 @@ def feed_data():
 				BatchTrainer.data_q.put((x_batch.copy(), y_batch.copy()))
 
 			count += 1
-			if count % 100000 == 0:
+			if count % 1000 == 0:
+				checkout()
 				BatchTrainer.data_q.put('val')
 				j = 0
 				for path, label in val_list:
@@ -213,6 +214,7 @@ def log_result():
 			val_count += val_batchsize
 			duration = time.time() - val_begin_at
 			throughput = val_count / duration
+			#print "val",val_count
 			print(
 				'\rval   {} batches ({} samples) time: {} ({} images/sec)'
 				.format(val_count / val_batchsize, val_count,
@@ -220,12 +222,13 @@ def log_result():
 
 			val_loss += loss
 			val_accuracy += accuracy
-			if val_count == 50000:
-				mean_loss = val_loss * val_batchsize / 50000
-				mean_error = 1 - val_accuracy * val_batchsize / 50000
+			if val_count >= 1000:
+				print "val==========="
+				mean_loss = val_loss * val_batchsize / val_count
+				mean_error = 1 - val_accuracy * val_batchsize / val_count
 				print(json.dumps({'type': 'val', 'iteration': train_count,
 								  'error': mean_error, 'loss': mean_loss}))
-
+                                val_count=0
 
 def train_loop():
 	global workout
@@ -334,8 +337,8 @@ def InputBatch(train='data/train.txt',val='data/test.txt'):
 
 
 
-def BatchTrain(callback):
-	global workout
+def BatchTrain(callback,callback2):
+	global workout,checkout
 	trainer = BatchTrainer()
 
 	if BatchTrainer.mode=='CNN':
@@ -347,6 +350,7 @@ def BatchTrain(callback):
 		logger.start()	
 
 		workout = callback
+		checkout=callback2
 
 		train_loop()
 		feeder.join()

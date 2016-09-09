@@ -129,6 +129,8 @@ class GoogLeNet(ImageNet):
 		#self.optimizer = optimizers.Adam()
 		#self.optimizer.setup(self.func)
 		self.optimizer.setup(self.model)
+	def save(self):
+		pickle.dump(self.model,open("model.pkl", "w"))
 
 	def forward(self,x,train=True):
 		#y = self.func(inputs={'data': x}, 
@@ -160,10 +162,10 @@ class GoogLeNet(ImageNet):
 		#		x_data=cuda.to_gpu(x_data)
 		
 		x = chainer.Variable(x_data, volatile=True)
-		score = self.forward(x)
+		score = self.predict(x)
 
-		if Deel.gpu >= 0:
-			score.data=cuda.to_cpu(score.data)
+		#if Deel.gpu >= 0:
+		#	score.data=cuda.to_cpu(score.data)
 
 		score = Variable(score.data) #Unchain 
 		t = ChainerTensor(score)
