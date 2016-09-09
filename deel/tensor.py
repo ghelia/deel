@@ -62,7 +62,7 @@ class ImageTensor(Tensor):
 		x_batch = xp.ndarray(
 				(1, 3, in_size,in_size), dtype=xp.float32)
 
-		x_batch[0]=image
+		x_batch[0]=xp.asarray(image)
 
 		self.value=x_batch
 
