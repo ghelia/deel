@@ -118,12 +118,13 @@ class GoogLeNet(ImageNet):
 		ImageNet.mean_image[2] = 123
 		ImageNet.in_size = in_size
 
+		print type(ImageNet.mean_image)
 		self.labels = np.loadtxt("misc/"+labels, str, delimiter="\t")
 		self.batchsize = 1
 		self.x_batch = xp.ndarray((self.batchsize, 3, self.in_size, self.in_size), dtype=np.float32)
 
 		if Deel.gpu >=0:
-			self.func = self.func.to_gpu(Deel.gpu)
+			self.model = self.model.to_gpu(Deel.gpu)
 		self.optimizer = optimizers.MomentumSGD(lr=0.01,momentum=0.9)
 		#self.optimizer = optimizers.Adam()
 		#self.optimizer.setup(self.func)
@@ -155,8 +156,8 @@ class GoogLeNet(ImageNet):
 		xp = Deel.xp
 		x_data = xp.asarray(self.x_batch)
 
-		if Deel.gpu >= 0:
-			x_data=cuda.to_gpu(x_data)
+		#if Deel.gpu >= 0:
+		#		x_data=cuda.to_gpu(x_data)
 		
 		x = chainer.Variable(x_data, volatile=True)
 		score = self.forward(x)
@@ -173,7 +174,7 @@ class GoogLeNet(ImageNet):
 
 	def layerDim(self, layer='inception_5b/pool_proj'):
 		xp = Deel.xp
-		ImageNet.mean_image = xp.ndarray((3, 256, 256), dtype=xp.float32)
+		ImageNet.mean_image = np.ndarray((3, 256, 256), dtype=xp.float32)
 		ImageNet.mean_image[0] = 104
 		ImageNet.mean_image[1] = 117
 		ImageNet.mean_image[2] = 123
@@ -235,16 +236,17 @@ class GoogLeNet(ImageNet):
 		#x_data = xp.asarray(self.x_batch)
 
 		x = x.content
-		if Deel.gpu >= 0:
-			x_data=cuda.to_gpu(x)
+		#if Deel.gpu >= 0:
+	        #		x_data=cuda.to_gpu(x)
 		self.optimizer.zero_grads()
 		outputs = self.forward(x,train=True)
 
 
-		if Deel.gpu >= 0:
+		"""if Deel.gpu >= 0:
 			outputs[0]=cuda.to_cpu(outputs[0])
 			outputs[1]=cuda.to_cpu(outputs[1])
 			outputs[2]=cuda.to_cpu(outputs[2])
+		"""
 		#print type(score)
 		#score = chainer.Variable(score, volatile=True)
 

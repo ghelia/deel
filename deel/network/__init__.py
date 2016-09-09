@@ -95,9 +95,9 @@ def filter(image,flip=False,center=True):
 		new_height = output_side_length * height / width
 	else:
 		new_width = output_side_length * width / height
-	resized_img = Image.fromarray(xp.uint8(image))
+	resized_img = Image.fromarray(np.uint8(image))
 	resized_img=resized_img.resize((new_width, new_height))
-	resized_img=xp.asarray(resized_img)
+	resized_img=np.asarray(resized_img)
 	height_offset = (new_height - output_side_length) / 2
 	width_offset = (new_width - output_side_length) / 2
 	image= resized_img[height_offset:height_offset + output_side_length,
@@ -114,6 +114,7 @@ def filter(image,flip=False,center=True):
 	bottom = ImageNet.in_size + top
 	right = ImageNet.in_size + left
 	image = image[:, top:bottom, left:right].astype(np.float32)
+	print type(image),type(ImageNet.mean_image)
 	image -= ImageNet.mean_image[:, top:bottom, left:right]
 	image /= 255
 	if flip and random.randint(0, 1) == 0:
@@ -147,7 +148,7 @@ class Perceptron(Chain,Network):
 		xp = Deel.xp
 
 		volatile = 'off' if Deel.train else 'on'
-		h = Variable(xp.asarray(x.value,dtype=xp.float32),volatile=volatile)
+		h = Variable(np.asarray(x.value,dtype=xp.float32),volatile=volatile)
 
 		self.optimizer.zero_grads()
 		for i in range(len(self.layers)):
@@ -185,13 +186,13 @@ class ImageNet(Network):
 		xp = Deel.xp
 		if isinstance(x,str):
 			img = Image.open(x)
-			t = ImageTensor(img,filtered_image=filter(xp.asarray(img)),
+			t = ImageTensor(img,filtered_image=filter(np.asarray(img)),
 							in_size=self.in_size)
 		elif hasattr(x,'_Image__transformer'):
-			t = ImageTensor(x,filtered_image=filter(xp.asarray(x)),
+			t = ImageTensor(x,filtered_image=filter(np.asarray(x)),
 							in_size=self.in_size)
 		else:
-			t = ImageTensor(x,filtered_image=filter(xp.asarray(x)),
+			t = ImageTensor(x,filtered_image=filter(np.asarray(x)),
 							in_size=self.in_size)
 		t.use()
 		return t
