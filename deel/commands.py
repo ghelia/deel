@@ -193,7 +193,7 @@ def log_result():
 			train_count += 1
 			duration = time.time() - begin_at
 			throughput = train_count * BatchTrainer.batchsize / duration
-			if train_count % 1 == 0:
+			if train_count % 100 == 0:
 				print(
 					'\rtrain {} updates ({} samples) time: {} ({} images/sec)'
 					.format(train_count, train_count * BatchTrainer.batchsize,
@@ -201,7 +201,7 @@ def log_result():
 
 			train_cur_loss += loss
 			train_cur_accuracy += accuracy
-			if train_count % 1 == 0:
+			if train_count % 1000 == 0:
 				mean_loss = train_cur_loss / 1000
 				mean_error = 1 - train_cur_accuracy / 1000
 				print(json.dumps({'type': 'train', 'iteration': train_count,

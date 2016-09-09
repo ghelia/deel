@@ -114,7 +114,7 @@ def filter(image,flip=False,center=True):
 	bottom = ImageNet.in_size + top
 	right = ImageNet.in_size + left
 	image = image[:, top:bottom, left:right].astype(np.float32)
-	print type(image),type(ImageNet.mean_image)
+	#print type(image),type(ImageNet.mean_image)
 	image -= ImageNet.mean_image[:, top:bottom, left:right]
 	image /= 255
 	if flip and random.randint(0, 1) == 0:

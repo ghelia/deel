@@ -90,13 +90,13 @@ def convert(src):
 	dst.inc5b.proj3	 = src['inception_5b/3x3_reduce'].copy()
 	dst.inc5b.proj5	 = src['inception_5b/5x5_reduce'].copy()
 	dst.inc5b.projp	 = src['inception_5b/pool_proj'].copy()
-	#loss3_fc         = src['loss3/classifier'].copy()
-	#loss1_conv       = src['loss1/conv'].copy()
-	#loss1_fc1        = src['loss1/fc'].copy()
-	#loss1_fc2        = src['loss1/classifier'].copy()
-	#loss2_conv       = src['loss2/conv'].copy()
-	#loss2_fc1        = src['loss2/fc'].copy()
-	#loss2_fc2        = src['loss2/classifier'].copy()
+	loss3_fc         = src['loss3/classifier'].copy()
+	loss1_conv       = src['loss1/conv'].copy()
+	loss1_fc1        = src['loss1/fc'].copy()
+	loss1_fc2        = src['loss1/classifier'].copy()
+	loss2_conv       = src['loss2/conv'].copy()
+	loss2_fc1        = src['loss2/fc'].copy()
+	loss2_fc2        = src['loss2/classifier'].copy()
 	return dst
 
 '''
@@ -118,7 +118,7 @@ class GoogLeNet(ImageNet):
 		ImageNet.mean_image[2] = 123
 		ImageNet.in_size = in_size
 
-		print type(ImageNet.mean_image)
+		#print type(ImageNet.mean_image)
 		self.labels = np.loadtxt("misc/"+labels, str, delimiter="\t")
 		self.batchsize = 1
 		self.x_batch = xp.ndarray((self.batchsize, 3, self.in_size, self.in_size), dtype=np.float32)
