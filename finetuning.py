@@ -22,4 +22,4 @@ def workout(x,t):
 def checkout():
 	CNN.save('modelcpu.hdf5')
 
-BatchTrain(workout)
+BatchTrain(workout,checkout)
