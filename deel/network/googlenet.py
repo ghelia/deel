@@ -3,6 +3,7 @@ import chainer.links as L
 from chainer import Variable
 from chainer.links import caffe
 from chainer import computational_graph as c
+import chainer.serializers as cs
 from deel.tensor import *
 from deel.network import *
 import copy
@@ -12,6 +13,7 @@ import deel.network
 import chainer
 import json
 import os
+import os.path
 import multiprocessing
 import threading
 import time
@@ -105,12 +107,18 @@ def convert(src):
 class GoogLeNet(ImageNet):
 	def __init__(self,modelpath='bvlc_googlenet.caffemodel',
 					mean='ilsvrc_2012_mean.npy',
-					labels='labels.txt',in_size=224):
+					labels='misc/labels.txt',in_size=224):
 		super(GoogLeNet,self).__init__('GoogLeNet',in_size)
 
-		self.func = LoadCaffeModel(modelpath)
-		self.model = convert(self.func)
+		if os.path.splitext(modelpath)[1]==".caffemodel":
+			self.func = LoadCaffeModel(modelpath)
+			self.model = convert(self.func)
+		else:
+			self.model = chainermodel.GoogLeNet()
+			cs.load_hdf5(modelpath,self.model)
+
 		xp = Deel.xp
+
 
 		ImageNet.mean_image = np.ndarray((3, 256, 256), dtype=np.float32)
 		ImageNet.mean_image[0] = 104
@@ -119,7 +127,7 @@ class GoogLeNet(ImageNet):
 		ImageNet.in_size = in_size
 
 		#print type(ImageNet.mean_image)
-		self.labels = np.loadtxt("misc/"+labels, str, delimiter="\t")
+		self.labels = np.loadtxt(labels, str, delimiter="\t")
 		self.batchsize = 1
 		self.x_batch = xp.ndarray((self.batchsize, 3, self.in_size, self.in_size), dtype=np.float32)
 
@@ -129,21 +137,20 @@ class GoogLeNet(ImageNet):
 		#self.optimizer = optimizers.Adam()
 		#self.optimizer.setup(self.func)
 		self.optimizer.setup(self.model)
-	def save(self):
-		pickle.dump(self.model,open("model.pkl", "w"))
+	def save(self,filename):
+		cs.save_hdf5(filename,self.model.to_cpu())
 
 	def forward(self,x,train=True):
-		#y = self.func(inputs={'data': x}, 
-		#			outputs=['loss1/classifier', 'loss2/classifier','loss3/classifier'],
-		#			train=train)
 		y = self.model.forward(x)
 		return y
 
 	def predict(self, x,layer='loss3/classifier',train=False):
-		y, = self.func(inputs={'data': x}, outputs=[layer],
+		"""y, = self.func(inputs={'data': x}, outputs=[layer],
 					disable=['loss1/ave_pool', 'loss2/ave_pool'],
 					train=train)
-		return F.softmax(y)
+		"""
+		y = self.model.forward(x)
+		return F.softmax(y[2])
 
 
 	def classify(self,x=None):
@@ -157,15 +164,9 @@ class GoogLeNet(ImageNet):
 		self.x_batch = image
 		xp = Deel.xp
 		x_data = xp.asarray(self.x_batch)
-
-		#if Deel.gpu >= 0:
-		#		x_data=cuda.to_gpu(x_data)
 		
-		x = chainer.Variable(x_data, volatile=True)
+		x = chainer.Variable(x_data, volatile='on')
 		score = self.predict(x)
-
-		#if Deel.gpu >= 0:
-		#	score.data=cuda.to_cpu(score.data)
 
 		score = Variable(score.data) #Unchain 
 		t = ChainerTensor(score)
