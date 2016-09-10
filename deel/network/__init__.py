@@ -84,42 +84,35 @@ def filter(image,flip=False,center=True):
 	#mean_image = ImageNet.mean_image[:, start:stop, start:stop].copy()
 	target_shape = (256, 256)
 	output_side_length=256
+	image_shape = (ImageNet.in_size, ImageNet.in_size)
 
 	xp = Deel.xp
 
-
-	height, width, depth = image.shape
-	new_height = output_side_length
-	new_width = output_side_length
-	if height > width:
-		new_height = output_side_length * height / width
+	image_w, image_h = image_shape
+	h, w,d = image.shape
+	if w > h:
+	    shape = (image_w * w / h, image_h)
 	else:
-		new_width = output_side_length * width / height
+	    shape = (image_w, image_h * h / w)
+	x = (shape[0] - image_w) / 2
+	y = (shape[1] - image_h) / 2
 	resized_img = Image.fromarray(np.uint8(image))
-	resized_img=resized_img.resize((new_width, new_height))
-	resized_img=np.asarray(resized_img)
-	height_offset = (new_height - output_side_length) / 2
-	width_offset = (new_width - output_side_length) / 2
-	image= resized_img[height_offset:height_offset + output_side_length,
-						width_offset:width_offset + output_side_length]
-
-	image = image.transpose(2, 0, 1)
-	#image = image[:, start:stop, start:stop].astype(xp.float32)
-	#image -= mean_image
-	if center:
-		top = left = cropwidth / 2
-	else:
-		top = random.randint(0, cropwidth - 1)
-		left = random.randint(0, cropwidth - 1)
-	bottom = ImageNet.in_size + top
-	right = ImageNet.in_size + left
-	image = image[:, top:bottom, left:right].astype(np.float32)
-	#print type(image),type(ImageNet.mean_image)
-	image -= ImageNet.mean_image[:, top:bottom, left:right]
-	image /= 255
+	resized_img=resized_img.resize(shape)
+	if not center:
+		x = random.randint(0, x)
+		y = random.randint(0, y)
+	image=np.asarray(resized_img).astype(np.float32)
+	image = image[y:y+image_h, x:x+image_w,:].astype(xp.float32)
 	if flip and random.randint(0, 1) == 0:
 		image = image[:, :, ::-1]
-
+	image = image.transpose(2,0,1)
+	crop = 256-ImageNet.in_size
+	x = crop/2
+	y = crop/2
+	w = 256-crop/2-x
+	h = 256-crop/2-y
+	image -= ImageNet.mean_image[:,y:y+h, x:x+w].astype(xp.float32)
+	image = image.reshape((1,) + image.shape)
 
 
 	return image
@@ -185,7 +178,7 @@ class ImageNet(Network):
 	def Input(self,x):
 		xp = Deel.xp
 		if isinstance(x,str):
-			img = Image.open(x)
+			img = Image.open(x).convert('RGB')
 			t = ImageTensor(img,filtered_image=filter(np.asarray(img)),
 							in_size=self.in_size)
 		elif hasattr(x,'_Image__transformer'):

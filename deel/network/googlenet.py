@@ -92,13 +92,13 @@ def convert(src):
 	dst.inc5b.proj3	 = src['inception_5b/3x3_reduce'].copy()
 	dst.inc5b.proj5	 = src['inception_5b/5x5_reduce'].copy()
 	dst.inc5b.projp	 = src['inception_5b/pool_proj'].copy()
-	loss3_fc         = src['loss3/classifier'].copy()
-	loss1_conv       = src['loss1/conv'].copy()
-	loss1_fc1        = src['loss1/fc'].copy()
-	loss1_fc2        = src['loss1/classifier'].copy()
-	loss2_conv       = src['loss2/conv'].copy()
-	loss2_fc1        = src['loss2/fc'].copy()
-	loss2_fc2        = src['loss2/classifier'].copy()
+	dst.loss3_fc     = src['loss3/classifier'].copy()
+	dst.loss1_conv   = src['loss1/conv'].copy()
+	dst.loss1_fc1    = src['loss1/fc'].copy()
+	dst.loss1_fc2    = src['loss1/classifier'].copy()
+	dst.loss2_conv   = src['loss2/conv'].copy()
+	dst.loss2_fc1    = src['loss2/fc'].copy()
+	dst.loss2_fc2    = src['loss2/classifier'].copy()
 	return dst
 
 '''
@@ -114,6 +114,7 @@ class GoogLeNet(ImageNet):
 			self.func = LoadCaffeModel(modelpath)
 			self.model = convert(self.func)
 		else:
+			self.func=None
 			self.model = chainermodel.GoogLeNet()
 			cs.load_hdf5(modelpath,self.model)
 
@@ -121,9 +122,9 @@ class GoogLeNet(ImageNet):
 
 
 		ImageNet.mean_image = np.ndarray((3, 256, 256), dtype=np.float32)
-		ImageNet.mean_image[0] = 104
-		ImageNet.mean_image[1] = 117
-		ImageNet.mean_image[2] = 123
+		ImageNet.mean_image[0] = 103.939
+		ImageNet.mean_image[1] = 116.779
+		ImageNet.mean_image[2] = 123.68
 		ImageNet.in_size = in_size
 
 		#print type(ImageNet.mean_image)
@@ -145,7 +146,14 @@ class GoogLeNet(ImageNet):
 		return y
 
 	def predict(self, x,train=False):
-		y = self.model.forward(x)
+		if self.func is not None:
+			score,= self.func(inputs={'data': x},
+					 outputs=['loss3/classifier'], 
+					 #disable=['loss1/ave_pool', 'loss2/ave_pool'],
+					 train=False)
+			return score
+		else:
+			y = self.model.forward(x)		
 		return F.softmax(y[2])
 
 
@@ -161,8 +169,11 @@ class GoogLeNet(ImageNet):
 		xp = Deel.xp
 		x_data = xp.asarray(self.x_batch)
 		
-		x = chainer.Variable(x_data, volatile='on')
+		x = chainer.Variable(x_data, volatile=True)
+
 		score = self.predict(x)
+
+		score = F.softmax(score)
 
 		score = Variable(score.data) #Unchain 
 		t = ChainerTensor(score)
@@ -230,28 +241,9 @@ class GoogLeNet(ImageNet):
 		if x is None:
 			x=Tensor.context
 
-		#images = x.value
-		#x.use()
-
-		#self.x_batch= images
-		#xp = Deel.xp
-		#x_data = xp.asarray(self.x_batch)
-
 		x = x.content
-		#if Deel.gpu >= 0:
-	        #		x_data=cuda.to_gpu(x)
 		self.optimizer.zero_grads()
 		outputs = self.forward(x,train=True)
-
-
-		"""if Deel.gpu >= 0:
-			outputs[0]=cuda.to_cpu(outputs[0])
-			outputs[1]=cuda.to_cpu(outputs[1])
-			outputs[2]=cuda.to_cpu(outputs[2])
-		"""
-		#print type(score)
-		#score = chainer.Variable(score, volatile=True)
-
 
 		t = ChainerTensor(outputs[2])
 		t.owner=self
@@ -272,8 +264,6 @@ class GoogLeNet(ImageNet):
 		loss3 = F.softmax_cross_entropy(self.loss3,t.content)
 
 		loss = 0.3*(loss1+loss2) +loss3
-
-		w = self.model.loss3_fc.params().next()
 
 		accuracy = F.accuracy(x.content,t.content)
 

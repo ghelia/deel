@@ -29,7 +29,6 @@ import cv2
 
 """Input something to context tensor"""
 def Input(x):
-	print "g"
 
 	if isinstance(x,str):
 		root, ext = os.path.splitext(x)
