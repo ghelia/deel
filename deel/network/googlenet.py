@@ -139,7 +139,7 @@ class GoogLeNet(ImageNet):
 		#self.optimizer.setup(self.func)
 		self.optimizer.setup(self.model)
 	def save(self,filename):
-		cs.save_hdf5(filename,self.model.to_cpu())
+		cs.save_hdf5(filename,self.model.copy.to_cpu())
 
 	def forward(self,x,train=True):
 		y = self.model.forward(x)

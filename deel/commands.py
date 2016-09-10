@@ -143,6 +143,7 @@ def feed_data():
 
 			count += 1
 			if count % 1000 == 0:
+				print "checkout"
 				checkout()
 				BatchTrainer.data_q.put('val')
 				j = 0
