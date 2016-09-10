@@ -144,11 +144,7 @@ class GoogLeNet(ImageNet):
 		y = self.model.forward(x)
 		return y
 
-	def predict(self, x,layer='loss3/classifier',train=False):
-		"""y, = self.func(inputs={'data': x}, outputs=[layer],
-					disable=['loss1/ave_pool', 'loss2/ave_pool'],
-					train=train)
-		"""
+	def predict(self, x,train=False):
 		y = self.model.forward(x)
 		return F.softmax(y[2])
 
@@ -211,7 +207,10 @@ class GoogLeNet(ImageNet):
 			x_data=cuda.to_gpu(x_data)
 		
 		x = chainer.Variable(x_data, volatile=True)
-		score = self.predict(x,layer=layer)
+		score, = self.func(inputs={'data': x}, outputs=[layer],
+			disable=['loss1/ave_pool', 'loss2/ave_pool'],
+			train=train)
+
 
 		if Deel.gpu >= 0:
 			score=cuda.to_cpu(score.data)
