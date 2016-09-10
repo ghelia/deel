@@ -19,5 +19,7 @@ def workout(x,t):
    CNN.batch_feature(x,t) 
    return CNN.backprop(t)
 
-BatchTrain(workout)
+def checkout():
+	CNN.save('modelcpu.hdf5')
 
+BatchTrain(workout)
