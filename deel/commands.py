@@ -142,12 +142,14 @@ def feed_data():
 				BatchTrainer.data_q.put((x_batch.copy(), y_batch.copy()))
 
 			count += 1
-			if count % 1000 == 0:
+			if count % 10000 == 0:
 				print "checkout"
 				checkout()
 				BatchTrainer.data_q.put('val')
 				j = 0
-				for path, label in val_list:
+				#val_list=train_list[idx:idx+val_batchsize]
+				#random.shuffle(val_list)
+				"""for path, label in val_list:
 					val_batch_pool[j] = pool.apply_async(
 						read_image, (path, True, False))
 					val_y_batch[j] = label
@@ -158,6 +160,14 @@ def feed_data():
 							val_x_batch[k] = x.get()
 						BatchTrainer.data_q.put((val_x_batch.copy(), val_y_batch.copy()))
 						j = 0
+				"""
+				r=[pool.apply_async(batch_read_and_feed, 
+					(val_list[i*val_batchsize:i*val_batchsize+val_batchsize],)) 
+					for i in range(len(val_list)/val_batchsize)]				
+				for res in r:
+					val_x_batch,val_y_batch = res.get()
+					BatchTrainer.data_q.put((val_x_batch.copy(), val_y_batch.copy()))
+				
 				BatchTrainer.data_q.put('train')
 		Deel.optimizer_lr *= 0.98
 
@@ -212,9 +222,9 @@ def log_result():
 				train_cur_accuracy = 0
 		else:
 			val_count += val_batchsize
+			print "valc",val_count
 			duration = time.time() - val_begin_at
 			throughput = val_count / duration
-			#print "val",val_count
 			print(
 				'\rval   {} batches ({} samples) time: {} ({} images/sec)'
 				.format(val_count / val_batchsize, val_count,
@@ -222,13 +232,13 @@ def log_result():
 
 			val_loss += loss
 			val_accuracy += accuracy
-			if val_count >= 1000:
-				print "val==========="
-				mean_loss = val_loss * val_batchsize / val_count
-				mean_error = 1 - val_accuracy * val_batchsize / val_count
+			if val_count % 1024 ==0:
+				mean_loss = val_loss *val_batchsize / 1024
+				mean_error = 1 - val_accuracy  * val_batchsize/ 1024
+				val_loss=0
+				val_accuracy=0
 				print(json.dumps({'type': 'val', 'iteration': train_count,
 								  'error': mean_error, 'loss': mean_loss}))
-                                val_count=0
 
 def train_loop():
 	global workout
@@ -256,13 +266,9 @@ def train_loop():
 
 		_x =Variable(Deel.xp.asarray(inp[0]), volatile=volatile)
 		_t =Variable(Deel.xp.asarray(inp[1]), volatile=volatile)
-		#print ""
-		#print "ref_begin",sys.getrefcount(_x)
 
 		x = ChainerTensor(_x)
 		t = ChainerTensor(_t)
-
-		#workout(x,t)
 
 		loss,accuracy = workout(x,t)
 

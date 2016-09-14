@@ -29,7 +29,7 @@ class Deel(object):
 	train = False
 	val = None
 	root = '.'
-	epoch=100
+	epoch=1000
 	gpu=-1
 	mean=None
 	labels=None

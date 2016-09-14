@@ -6,7 +6,6 @@ import chainer.functions as F
 import time
 
 deel = Deel(gpu=1)
-BatchTrainer.batchsize=100
 
 CNN = GoogLeNet()
 

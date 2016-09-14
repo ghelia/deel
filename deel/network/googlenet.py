@@ -139,7 +139,7 @@ class GoogLeNet(ImageNet):
 		#self.optimizer.setup(self.func)
 		self.optimizer.setup(self.model)
 	def save(self,filename):
-		cs.save_hdf5(filename,self.model.copy.to_cpu())
+		cs.save_hdf5(filename,self.model.copy().to_cpu())
 
 	def forward(self,x,train=True):
 		y = self.model.forward(x)
@@ -154,7 +154,7 @@ class GoogLeNet(ImageNet):
 			return score
 		else:
 			y = self.model.forward(x)		
-		return F.softmax(y[2])
+		return y[2]
 
 
 	def classify(self,x=None):
@@ -243,7 +243,7 @@ class GoogLeNet(ImageNet):
 
 		x = x.content
 		self.optimizer.zero_grads()
-		outputs = self.forward(x,train=True)
+		outputs = self.forward(x,train=Deel.train)
 
 		t = ChainerTensor(outputs[2])
 		t.owner=self
@@ -265,7 +265,7 @@ class GoogLeNet(ImageNet):
 
 		loss = 0.3*(loss1+loss2) +loss3
 
-		accuracy = F.accuracy(x.content,t.content)
+		accuracy = F.accuracy(F.softmax(x.content),t.content)
 
 		if  Deel.train:
 			loss.backward()
