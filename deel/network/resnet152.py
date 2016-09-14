@@ -120,7 +120,7 @@ class ResNet152(ImageNet):
 			x=Tensor.context
 		loss = F.softmax_cross_entropy(x.conent,t.content)
 
-		accuracy = F.accuracy(x.content,t.content)
+		accuracy = F.accuracy(F.softmax(x.content),t.content)
 
 		if  Deel.train:
 			loss.backward()
