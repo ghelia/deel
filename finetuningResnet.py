@@ -6,7 +6,7 @@ from deel.network.resnet152 import *
 import chainer.functions as F
 import time
 
-deel = Deel(gpu=1)
+deel = Deel(gpu=-1)
 
 CNN = ResNet152()
 

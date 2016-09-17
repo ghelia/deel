@@ -2,6 +2,7 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import Variable
 from chainer.links import caffe
+import deel.model.caffefunction as CaffeFunction
 from chainer import computational_graph as c
 import chainer.serializers as cs
 from deel.tensor import *
@@ -118,7 +119,7 @@ class ResNet152(ImageNet):
 	def backprop(self,t,x=None):
 		if x is None:
 			x=Tensor.context
-		loss = F.softmax_cross_entropy(x.conent,t.content)
+		loss = F.softmax_cross_entropy(x.content,t.content)
 
 		accuracy = F.accuracy(F.softmax(x.content),t.content)
 

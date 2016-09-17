@@ -2,6 +2,7 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import Variable,optimizers,Chain
 from chainer.links import caffe
+from deel.model.caffefunction import CaffeFunction
 from chainer import computational_graph as c
 from deel.tensor import *
 import copy
@@ -38,16 +39,17 @@ def getDim(shape):
 def LoadCaffeModel(path):
 	print "Loading %s"%path
 	root, ext = os.path.splitext(path)
-	cashnpath = 'cash/'+hashlib.sha224(root).hexdigest()+".pkl"
+	cashpath = 'cash/'+hashlib.sha224(root).hexdigest()+".pkl"
 	if path in __Model_cache:
 		print "Cache hit"
 		func = __Model_cache[path]
-	if os.path.exists(cashnpath):
-		func = pickle.load(open(cashnpath,'rb'))
+	if os.path.exists(cashpath):
+		func = pickle.load(open(cashpath,'rb'))
 	else:
 		print "Converting from %s"%path
-		func = caffe.CaffeFunction('misc/'+path)
-		pickle.dump(func, open(cashnpath, 'wb'))
+		#func = caffe.CaffeFunction('misc/'+path)
+		func = CaffeFunction('misc/'+path)
+		pickle.dump(func, open(cashpath, 'wb'))
 	__Model_cache[path]=func
 	if Deel.gpu>=0:
 		func = func.to_gpu(Deel.gpu)
