@@ -71,7 +71,7 @@ class ResNet152(ImageNet):
 		#self.optimizer.setup(self.func.fc1000)
 		self.optimizer.setup(self.func[tuning_layer])
 	def save(self,filename):
-		cs.save_hdf5(filename,self.func.to_cpu())
+		cs.save_hdf5(filename,self.func.copy().to_cpu())
 
 	def forward(self,x,train=True):
 		y, = self.func(inputs={'data': x}, outputs=['fc1000'],
