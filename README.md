@@ -113,7 +113,6 @@ StartAgent(trainer)
 
 ####ResNet Inferrence
 ```python
-InputBatch(train="data/train_lstm.tsv")
 from deel import *
 from deel.network import *
 from deel.network.googlenet import *
