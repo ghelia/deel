@@ -67,7 +67,7 @@ class ResNet152(ImageNet):
 			self.func = self.func.to_gpu(Deel.gpu)
 		self.optimizer = optimizers.MomentumSGD(lr=0.01,momentum=0.9)
 		#self.optimizer = optimizers.Adam()
-		self.optimizer.setup(self.func)
+		self.optimizer.setup(self.func.fc1000)
 	def save(self,filename):
 		cs.save_hdf5(filename,self.func.to_cpu())
 

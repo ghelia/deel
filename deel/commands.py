@@ -259,16 +259,17 @@ def train_loop():
 			BatchTrainer.res_q.put('val')
 			train=False
 			continue
-		train=False
+		#train=False
 
 		Deel.train = train
 
 		volatile = 'off' if train else 'on'
+		#volatile='on'
 
 		_ax = Deel.xp.asarray(inp[0])
 		_at = Deel.xp.asarray(inp[1])
 
-		_x =Variable(_ax, volatile=volatile)
+		_x =Variable(_ax, volatile='on')
 		_t =Variable(_at, volatile=volatile)
 
 		x = ChainerTensor(_x)
