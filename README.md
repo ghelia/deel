@@ -111,18 +111,47 @@ StartAgent(trainer)
 ```
 
 
-####CNN-LSTM trainer (done, not test)
+####ResNet Inferrence
 ```python
 InputBatch(train="data/train_lstm.tsv")
+from deel import *
+from deel.network import *
+from deel.network.googlenet import *
+from deel.network.resnet152 import *
+from deel.commands import *
+import time
+deel = Deel()
 
-CNN = GoogLeNet()
-RNN = LSTM()
+CNN = ResNet152()
+CNN.Input("test.jpg")
+CNN.classify()
+ShowLabels()
 
-def trainer(x,t):
-	CNN.classify(x) 
-	RNN.learn(t)
-	return RNN.backprop()
-
-BatchTrain(trainer)
 ```
 
+####ResNet Finetuning
+```python
+from deel import *
+from deel.network import *
+from deel.commands import *
+from deel.network.resnet152 import *
+#from deel.network.googlenet import *
+import chainer.functions as F
+import time
+
+deel = Deel(gpu=-1)
+
+CNN = ResNet152()
+
+InputBatch(train="data/train.txt",
+            val="data/test.txt")
+
+def workout(x,t):
+   CNN.batch_feature(x,t) 
+   return CNN.backprop(t)
+
+def checkout():
+   CNN.save('model_google_cpu.hdf5')
+
+BatchTrain(workout,checkout)
+```
