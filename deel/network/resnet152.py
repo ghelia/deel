@@ -125,6 +125,6 @@ class ResNet152(ImageNet):
 
 		if  Deel.train:
 			loss.backward()
-		self.optimizer.update()
+			self.optimizer.update()
 		return loss.data,accuracy.data
 

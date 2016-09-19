@@ -139,7 +139,7 @@ def feed_data():
 					for i in range(thleads)]
 			for res in r:
 				x_batch,y_batch = res.get()
-				BatchTrainer.data_q.put((x_batch.copy(), y_batch.copy()))
+				BatchTrainer.data_q.put((x_batch, y_batch))
 
 			count += 1
 			if count % 10000 == 0:
@@ -239,7 +239,7 @@ def log_result():
 				val_accuracy=0
 				print(json.dumps({'type': 'val', 'iteration': train_count,
 								  'error': mean_error, 'loss': mean_loss}))
-
+import cupy.cuda.runtime as rt
 def train_loop():
 	global workout
 	train=True
@@ -259,18 +259,23 @@ def train_loop():
 			BatchTrainer.res_q.put('val')
 			train=False
 			continue
+		train=False
 
 		Deel.train = train
 
 		volatile = 'off' if train else 'on'
 
-		_x =Variable(Deel.xp.asarray(inp[0]), volatile=volatile)
-		_t =Variable(Deel.xp.asarray(inp[1]), volatile=volatile)
+		_ax = Deel.xp.asarray(inp[0])
+		_at = Deel.xp.asarray(inp[1])
+
+		_x =Variable(_ax, volatile=volatile)
+		_t =Variable(_at, volatile=volatile)
 
 		x = ChainerTensor(_x)
 		t = ChainerTensor(_t)
 
 		loss,accuracy = workout(x,t)
+
 
 		Deel.trainCount+=1
 
@@ -278,7 +283,7 @@ def train_loop():
 		BatchTrainer.res_q.put((float(loss), float(accuracy)))
 		del _x,_t
 		del x,t
-
+		del _ax,_at
 
 def cnn_lstm_trainer(workout):
 	Deel.trainCount=0

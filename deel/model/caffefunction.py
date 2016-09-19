@@ -5,7 +5,8 @@ import warnings
 
 import numpy
 import six
-
+import chainer
+import chainer.cuda
 from chainer import functions
 from chainer import link
 from chainer import links
@@ -161,7 +162,7 @@ class CaffeFunction(link.Chain):
                         'Skip the layer "%s", since CaffeFunction does not'
                         'support it' % layer.name)
 
-    def __call__(self, inputs, outputs, disable=(), train=True):
+    def __call__(self, inputs, outputs, disable=(), train=True,tuning_layer=169):
         """Executes a sub-network of the network.
 
         This function acts as an interpreter of the network definition for
@@ -185,26 +186,25 @@ class CaffeFunction(link.Chain):
                 corresponding to elements of the  `outputs` argument.
 
         """
-        self.train = False
+	self.train = False
         variables = dict(inputs)
         cnt=1
-        num_of_layers = len(self.layers)
-        tuning_layer = num_of_layers*4/5
-        print tuning_layer
-        print num_of_layers
+	self.cleargrads()
         for func_name, bottom, top in self.layers:
-            #print cnt,func_name
             cnt+=1
-            if cnt > tuning_layer:
-                self.train = train
             if (func_name in disable or
                 func_name not in self.forwards or
                     any(blob not in variables for blob in bottom)):
                 continue
+            #import cupy.cuda.runtime as rt
+            #print cnt,func_name,rt.memGetInfo()[0]/1000
 
             func = self.forwards[func_name]
             input_vars = tuple(variables[blob] for blob in bottom)
             output_vars = func(*input_vars)
+            if cnt==tuning_layer:
+               output_vars = chainer.Variable(output_vars.data,volatile='on')
+               self.train=True
             if not isinstance(output_vars, collections.Iterable):
                 output_vars = output_vars,
             for var, name in zip(output_vars, top):
@@ -232,6 +232,8 @@ class CaffeFunction(link.Chain):
 
     @_layer('Convolution', 'CONVOLUTION')
     def _setup_convolution(self, layer):
+	#train = self.train
+	#self.train=False
         blobs = layer.blobs
         param = layer.convolution_param
         ksize = _get_ksize(param)
@@ -262,6 +264,7 @@ class CaffeFunction(link.Chain):
             func.b.data[:] = blobs[1].data
 
         self.add_link(layer.name, func)
+	#self.train=train
         self.forwards[layer.name] = _CallChildLink(self, layer.name)
         self._add_layer(layer)
 
