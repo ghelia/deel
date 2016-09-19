@@ -269,7 +269,10 @@ def train_loop():
 		_ax = Deel.xp.asarray(inp[0])
 		_at = Deel.xp.asarray(inp[1])
 
-		_x =Variable(_ax, volatile='on')
+		if Deel.defferedTuning:
+			_x =Variable(_ax, volatile='on')
+		else:
+			_x =Variable(_ax, volatile=volatile)
 		_t =Variable(_at, volatile=volatile)
 
 		x = ChainerTensor(_x)

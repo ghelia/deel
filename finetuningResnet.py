@@ -6,12 +6,14 @@ from deel.network.resnet152 import *
 import chainer.functions as F
 import time
 
-deel = Deel(gpu=1)
+deel = Deel(gpu=0)
 from chainer import cuda
 cuda.cudnn_enabled=False
 CNN = ResNet152()
-BatchTrainer.batchsize=8
-BatchTrainer.val_batchsize=8
+BatchTrainer.batchsize=12
+BatchTrainer.val_batchsize=4
+Deel.defferedTuning=True
+
 InputBatch(train="data/train.txt",
             val="data/test.txt")
 

@@ -162,7 +162,7 @@ class CaffeFunction(link.Chain):
 						'Skip the layer "%s", since CaffeFunction does not'
 						'support it' % layer.name)
 
-	def __call__(self, inputs, outputs, disable=(), train=True,tuning_layer=669):
+	def __call__(self, inputs, outputs, disable=(), train=True,tuning_layer='fc1000'):
 		"""Executes a sub-network of the network.
 
 		This function acts as an interpreter of the network definition for
@@ -198,19 +198,20 @@ class CaffeFunction(link.Chain):
 					any(blob not in variables for blob in bottom)):
 				continue
 			#import cupy.cuda.runtime as rt
-			#print cnt,func_name,rt.memGetInfo()[0]/1000
+			#print cnt,func_name,rt.memGetInfo()[0]/1024
 
 			func = self.forwards[func_name]
 			input_vars = tuple(variables[blob] for blob in bottom)
-			output_vars = func(*input_vars)
-			if cnt==tuning_layer:
-			   #output_vars.cleargrad()
-			   #print output_vars.debug_print()
+			if func_name==tuning_layer:
 			   volatile = 'off' if train else 'on'
-			   output_vars = chainer.Variable(output_vars.data,volatile=volatile)
-			   #print output_vars.debug_print()
+			   new_input_vars =[]
+			   for blob in input_vars:
+				   new_input_vars.append(
+				   		chainer.Variable(blob.data,volatile=volatile))
+			   input_vars = new_input_vars
 			   self.train=True
-			   #print volatile,type(output_vars.data)
+			output_vars = func(*input_vars)
+			#if cnt==tuning_layer:
 			if not isinstance(output_vars, collections.Iterable):
 				output_vars = output_vars,
 			for var, name in zip(output_vars, top):

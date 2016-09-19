@@ -37,6 +37,7 @@ class Deel(object):
 	optimizer_lr=0.1
 	trainCount=0
 	lstm_train=None
+	defferedTuning=False
 	def __init__(self,gpu=-1):
 		Deel.singleton = self
 		Deel.gpu=gpu

@@ -45,7 +45,8 @@ import random
 class ResNet152(ImageNet):
 	def __init__(self,modelpath='ResNet-152-model.caffemodel',
 					mean='ilsvrc_2012_mean.npy',
-					labels='misc/labels.txt',in_size=224):
+					labels='misc/labels.txt',in_size=224,
+					tuning_layer='fc1000'):
 		super(ResNet152,self).__init__('ResNet152',in_size)
 
 		self.func = LoadCaffeModel(modelpath)
@@ -67,7 +68,8 @@ class ResNet152(ImageNet):
 			self.func = self.func.to_gpu(Deel.gpu)
 		self.optimizer = optimizers.MomentumSGD(lr=0.01,momentum=0.9)
 		#self.optimizer = optimizers.Adam()
-		self.optimizer.setup(self.func.fc1000)
+		#self.optimizer.setup(self.func.fc1000)
+		self.optimizer.setup(self.func[tuning_layer])
 	def save(self,filename):
 		cs.save_hdf5(filename,self.func.to_cpu())
 
