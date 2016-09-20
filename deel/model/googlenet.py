@@ -103,7 +103,6 @@ class GoogLeNet(chainer.Chain):
         l = F.relu(self.loss1_fc1(l))
         l = self.loss1_fc2(l)
         loss1 = l
-        #loss1 = F.softmax_cross_entropy(l, t)
 
         h = self.inc4b(h)
         h = self.inc4c(h)
@@ -113,9 +112,8 @@ class GoogLeNet(chainer.Chain):
         l = F.relu(self.loss2_conv(l))
         l = F.relu(self.loss2_fc1(l))
         l = self.loss2_fc2(l)
-        #loss2 = F.softmax_cross_entropy(l, t)
         loss2 = l
-
+        
         h = self.inc4e(h)
         h = F.max_pooling_2d(h, 3, stride=2)
         h = self.inc5a(h)
@@ -123,10 +121,6 @@ class GoogLeNet(chainer.Chain):
 
         h = F.average_pooling_2d(h, 7, stride=1)
         h = self.loss3_fc(F.dropout(h, 0.4, train=self.train))
-        #loss3 = F.softmax_cross_entropy(h, t)
         loss3 = h
-
-        #loss = 0.3 * (loss1 + loss2) + loss3
-        #accuracy = F.accuracy(h, t)
 
         return loss1,loss2,loss3

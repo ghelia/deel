@@ -134,8 +134,9 @@ class CaffeFunction(link.Chain):
 		super(CaffeFunction, self).__init__()
 
 		net = caffe_pb.NetParameter()
-		with open(model_path, 'rb') as model_file:
-			net.MergeFromString(model_file.read())
+		if model_path is not None:
+			with open(model_path, 'rb') as model_file:
+				net.MergeFromString(model_file.read())
 
 		self.forwards = {}
 		self.split_map = {}
