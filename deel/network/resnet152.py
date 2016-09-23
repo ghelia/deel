@@ -66,8 +66,8 @@ class ResNet152(ImageNet):
 
 		if Deel.gpu >=0:
 			self.func = self.func.to_gpu(Deel.gpu)
-		self.optimizer = optimizers.MomentumSGD(lr=0.01,momentum=0.9)
-		#self.optimizer = optimizers.Adam()
+		#self.optimizer = optimizers.MomentumSGD(lr=0.01,momentum=0.9)
+		self.optimizer = optimizers.RMSpropGraves()
 		#self.optimizer.setup(self.func.fc1000)
 		self.optimizer.setup(self.func[tuning_layer])
 	def save(self,filename):
