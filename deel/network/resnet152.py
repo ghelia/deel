@@ -49,7 +49,11 @@ class ResNet152(ImageNet):
 					tuning_layer='fc1000'):
 		super(ResNet152,self).__init__('ResNet152',in_size)
 
-		self.func = LoadCaffeModel(modelpath)
+		if os.path.splitext(modelpath)[1]==".caffemodel":
+			self.func = LoadCaffeModel(modelpath)
+		else:
+			self.func = LoadCaffeModel("ResNet-152-model.caffemodel")
+			cs.load_hdf5(modelpath,self.func)
 
 		xp = Deel.xp
 
@@ -71,7 +75,7 @@ class ResNet152(ImageNet):
 		#self.optimizer.setup(self.func.fc1000)
 		self.optimizer.setup(self.func[tuning_layer])
 	def save(self,filename):
-		cs.save_hdf5(filename,self.func.copy().to_cpu())
+		cs.save_hdf5(filename,self.func.to_cpu())
 
 	def forward(self,x,train=True):
 		y, = self.func(inputs={'data': x}, outputs=['fc1000'],

@@ -22,9 +22,9 @@ def _protobuf3():
 
 
 if _protobuf3():
-	from chainer.links.caffe import caffe_pb2 as caffe_pb
+	from chainer.links.caffe.protobuf3 import caffe_pb2 as caffe_pb
 	available = True
-
+	
 	try:
 		# This method is undocumented, but is required to read large size of
 		# model files when a user uses cpp-implementation.
@@ -35,7 +35,7 @@ if _protobuf3():
 
 elif sys.version_info < (3, 0, 0):
 	# caffe_pb2 does not support Py3
-	from chainer.links.caffe import caffe_pb2 as caffe_pb
+	from chainer.links.caffe.protobuf2 import caffe_pb2 as caffe_pb
 	available = True
 else:
 	available = False
@@ -134,8 +134,9 @@ class CaffeFunction(link.Chain):
 		super(CaffeFunction, self).__init__()
 
 		net = caffe_pb.NetParameter()
-		with open(model_path, 'rb') as model_file:
-			net.MergeFromString(model_file.read())
+		if model_path is not None:
+			with open(model_path, 'rb') as model_file:
+				net.MergeFromString(model_file.read())
 
 		self.forwards = {}
 		self.split_map = {}
@@ -207,7 +208,7 @@ class CaffeFunction(link.Chain):
 			   new_input_vars =[]
 			   for blob in input_vars:
 				   new_input_vars.append(
-				   		chainer.Variable(blob.data,volatile=volatile))
+						chainer.Variable(blob.data,volatile=volatile))
 			   input_vars = new_input_vars
 			   self.train=True
 			output_vars = func(*input_vars)
