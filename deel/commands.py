@@ -142,7 +142,7 @@ def feed_data():
 				BatchTrainer.data_q.put((x_batch, y_batch))
 
 			count += 1
-			if count % 10000 == 0:
+			if count % 3000 == 0:
 				print "checkout"
 				checkout()
 				BatchTrainer.data_q.put('val')
@@ -271,9 +271,10 @@ def train_loop():
 
 		if Deel.defferedTuning:
 			_x =Variable(_ax, volatile='on')
+			_t =Variable(_at, volatile='off')
 		else:
 			_x =Variable(_ax, volatile=volatile)
-		_t =Variable(_at, volatile=volatile)
+			_t =Variable(_at, volatile=volatile)
 
 		x = ChainerTensor(_x)
 		t = ChainerTensor(_t)
