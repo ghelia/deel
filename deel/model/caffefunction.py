@@ -144,8 +144,8 @@ class CaffeFunction(link.Chain):
 
 		if net.layer:
 			for layer in net.layer:
-				#print layer.name
-				#print layer.type
+				print layer.name
+				print layer.type
 				meth = _type_to_method.get(layer.type)
 				if meth:
 					meth(self, layer)
