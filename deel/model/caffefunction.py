@@ -144,8 +144,6 @@ class CaffeFunction(link.Chain):
 
 		if net.layer:
 			for layer in net.layer:
-				#print layer.name
-				#print layer.type
 				meth = _type_to_method.get(layer.type)
 				if meth:
 					meth(self, layer)
@@ -200,6 +198,7 @@ class CaffeFunction(link.Chain):
 				continue
 			#import cupy.cuda.runtime as rt
 			#print cnt,func_name,rt.memGetInfo()[0]/1024
+			#print cnt,func_name
 
 			func = self.forwards[func_name]
 			input_vars = tuple(variables[blob] for blob in bottom)
@@ -320,6 +319,7 @@ class CaffeFunction(link.Chain):
 			alpha=param.alpha / param.local_size, beta=param.beta)
 		self.forwards[layer.name] = fwd
 		self._add_layer(layer)
+
 
 	@_layer('Pooling', 'POOLING')
 	def _setup_pooling(self, layer):

@@ -49,8 +49,6 @@ class Deel(object):
 	def getInstance():
 		return Deel.singleton
 
-
-
 '''
 	Trainer
 '''
