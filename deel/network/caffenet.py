@@ -38,13 +38,16 @@ class CaffeNet(ImageNet):
 	def __init__(self,modelpath='gender_net.caffemodel.caffemodel',
 					mean='ilsvrc_2012_mean.npy',
 					labels='misc/labels.txt',in_size=228,
-					outputLayer='fc8'
+					disableLayers=[],
+					outputLayers=['fc8']
 					):
 		super(CaffeNet,self).__init__('CaffeNet',in_size)
 
 		self.func = LoadCaffeModel(modelpath)
 
 		xp = Deel.xp
+		self.disableLayers = disableLayers
+		self.outputLayers = outputLayers
 
 
 		ImageNet.mean_image = np.ndarray((3, 256, 256), dtype=np.float32)
@@ -63,13 +66,12 @@ class CaffeNet(ImageNet):
 		if Deel.gpu >=0:
 			self.func = self.func.to_gpu(Deel.gpu)
 
-		self.outputLayer=outputLayer
 
 	def save(self,filename):
 		cs.save_hdf5(filename,self.func.to_cpu())
 
 	def forward(self,x):
-		y, = self.func(inputs={'data': x}, outputs=[self.outputLayer],
+		y, = self.func(inputs={'data': x}, disable=self.disableLayers,outputs=self.outputLayers,
 			train=False)
 		return y
 
