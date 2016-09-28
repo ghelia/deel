@@ -24,6 +24,7 @@ import hashlib
 import datetime
 import sys
 import random
+import cv2
 
 __Model_cache={}
 
@@ -39,7 +40,7 @@ def getDim(shape):
 def LoadCaffeModel(path):
 	print "Loading %s"%path
 	root, ext = os.path.splitext(path)
-	cashpath = 'cash/'+hashlib.sha224(root).hexdigest()+".pkl"
+	cashpath = 'cache/'+hashlib.sha224(root).hexdigest()+".pkl"
 	if path in __Model_cache:
 		print "Cache hit"
 		func = __Model_cache[path]
@@ -180,9 +181,10 @@ class ImageNet(Network):
 	def Input(self,x):
 		xp = Deel.xp
 		if isinstance(x,str):
-			img = Image.open(x).convert('RGB')
+			#img = Image.open(x).convert('RGB')
+			img = cv2.imread(x)
 			t = ImageTensor(img,filtered_image=filter(np.asarray(img)),
-							in_size=self.in_size)
+							in_size=self.in_size,path=x)
 		elif hasattr(x,'_Image__transformer'):
 			t = ImageTensor(x,filtered_image=filter(np.asarray(x)),
 							in_size=self.in_size)

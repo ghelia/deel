@@ -33,13 +33,18 @@ import deel.model.nin
 
 
 class NetworkInNetwork(ImageNet):
-	def __init__(self,mean='data/mean.npy',labels='data/labels.txt',optimizer=None):
+	def __init__(self,mean='misc/ilsvrc_2012_mean.npy',labels='data/labels.txt',optimizer=None):
 		super(NetworkInNetwork,self).__init__('NetworkInNetwork',in_size=227)
 
 		self.func = model.nin.NIN()
 		self.graph_generated=None
 
-		ImageNet.mean_image = pickle.load(open(mean, 'rb'))
+		xp = Deel.xp
+		#ImageNet.mean_image = pickle.load(open(mean, 'rb'))
+		ImageNet.mean_image = np.ndarray((3, 256, 256), dtype=xp.float32)
+		ImageNet.mean_image[0] = 104
+		ImageNet.mean_image[1] = 117
+		ImageNet.mean_image[2] = 123
 		ImageNet.in_size = self.func.insize
 
 		self.labels = np.loadtxt(labels, str, delimiter="\t")
@@ -71,16 +76,23 @@ class NetworkInNetwork(ImageNet):
 		self.t.use()
 		
 		return self.t
+	def save(self,filename):
+		cs.save_hdf5(filename,self.model.copy().to_cpu())
 
 
-	def backprop(self,t):
+	def backprop(self,t,distill=False):
 		x=Tensor.context
 
 
 		self.optimizer.lr = Deel.optimizer_lr
 
 		self.optimizer.zero_grads()
-		loss,accuracy = self.func.getLoss(x.content,t.content)
+		if distill:
+			loss = self.func.getLossDistill(x.content,t.content)
+			accuracy = 0.0
+		else:
+			loss,accuracy = self.func.getLoss(x.content,t.content)
+			accuracy = accuracy.data
 
 		loss.backward()
 		self.optimizer.update()
@@ -95,5 +107,5 @@ class NetworkInNetwork(ImageNet):
 			self.graph_generated = True
 
 
-		return loss.data,accuracy.data
+		return loss.data,accuracy
 
