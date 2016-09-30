@@ -47,11 +47,13 @@ class Tensor(object):
 
 
 class ImageTensor(Tensor):
-	def __init__(	self,x,filtered_image=None,in_size=256,comment=''):
+	def __init__(	self,x,filtered_image=None,in_size=256,h=None,w=None,comment='',path=None):
 		super(ImageTensor,self).__init__(
 				np.asarray(x).transpose(2, 0, 1),
 				comment=comment)
 		self.content = x
+		self.path=path
+
 		
 		if filtered_image is None:
 			filtered_image=_x
@@ -59,8 +61,13 @@ class ImageTensor(Tensor):
 		
 
 		xp = Deel.xp
+		if w is None:
+			w = in_size
+		if h is None:
+			h = in_size
+
 		x_batch = xp.ndarray(
-				(1, 3, in_size,in_size), dtype=xp.float32)
+				(1, 3, h,w), dtype=xp.float32)
 
 		x_batch[0]=xp.asarray(image)
 

@@ -5,6 +5,7 @@ from chainer.links import caffe
 from chainer import computational_graph as c
 from deel.tensor import *
 from deel.network import *
+import chainer.serializers as cs
 import copy
 
 from deel import *
@@ -33,13 +34,21 @@ import deel.model.nin
 
 
 class NetworkInNetwork(ImageNet):
-	def __init__(self,mean='data/mean.npy',labels='data/labels.txt',optimizer=None):
+	def __init__(self,modelpath=None,mean='misc/ilsvrc_2012_mean.npy',labels='data/labels.txt',optimizer=None):
 		super(NetworkInNetwork,self).__init__('NetworkInNetwork',in_size=227)
 
 		self.func = model.nin.NIN()
+		if modelpath is not None:
+			cs.load_hdf5("misc/"+modelpath,self.func)
+
 		self.graph_generated=None
 
-		ImageNet.mean_image = pickle.load(open(mean, 'rb'))
+		xp = Deel.xp
+		#ImageNet.mean_image = pickle.load(open(mean, 'rb'))
+		ImageNet.mean_image = np.ndarray((3, 256, 256), dtype=xp.float32)
+		ImageNet.mean_image[0] = 104
+		ImageNet.mean_image[1] = 117
+		ImageNet.mean_image[2] = 123
 		ImageNet.in_size = self.func.insize
 
 		self.labels = np.loadtxt(labels, str, delimiter="\t")
@@ -49,10 +58,9 @@ class NetworkInNetwork(ImageNet):
 		if Deel.gpu>=0:
 			self.func.to_gpu()
 
-		Deel.optimizer_lr=0.01
 
 		if optimizer is None:
-			self.optimizer = optimizers.MomentumSGD(Deel.optimizer_lr, momentum=0.9)
+			self.optimizer = optimizers.Adam()
 		self.optimizer.setup(self.func)
 
 
@@ -64,23 +72,37 @@ class NetworkInNetwork(ImageNet):
 		if x is None:
 			x=Tensor.context
 
-		_x = x.content
-		result = self.forward(_x)
-		self.t.content=result
-		self.t.owner=self
-		self.t.use()
+		image = x.value
+		self.x_batch = image
+		xp = Deel.xp
+		x_data = xp.asarray(self.x_batch)
 		
-		return self.t
+		x = chainer.Variable(x_data, volatile=True)
+		score = self.forward(x)
+		
+		score = F.softmax(score)
+
+		score = Variable(score.data) #Unchain 
+		t = ChainerTensor(score)
+		t.owner=self
+		t.use()
+		return t
+	def save(self,filename):
+		cs.save_hdf5(filename,self.func.copy().to_cpu())
 
 
-	def backprop(self,t):
+	def backprop(self,t,distill=False):
 		x=Tensor.context
 
 
-		self.optimizer.lr = Deel.optimizer_lr
 
 		self.optimizer.zero_grads()
-		loss,accuracy = self.func.getLoss(x.content,t.content)
+		if distill:
+			loss = self.func.getLossDistill(x.content,t.content)
+			accuracy = 0.0
+		else:
+			loss,accuracy = self.func.getLoss(x.content,t.content)
+			accuracy = accuracy.data
 
 		loss.backward()
 		self.optimizer.update()
@@ -95,5 +117,5 @@ class NetworkInNetwork(ImageNet):
 			self.graph_generated = True
 
 
-		return loss.data,accuracy.data
+		return loss.data,accuracy
 
