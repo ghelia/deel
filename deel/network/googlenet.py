@@ -202,7 +202,7 @@ class GoogLeNet(ImageNet):
 		ImageNet.mean_image[2] = 123
 		return y.data.shape
 
-	def feature(self, x,layer=u'inception_5b/pool_proj'):
+	def feature(self, x,layer=u'loss3/classifier',train=False):
 		if x is None:
 			x=Tensor.context
 		if not isinstance(x,ImageTensor):
@@ -236,8 +236,9 @@ class GoogLeNet(ImageNet):
 		t = ChainerTensor(score)
 		t.owner=self
 		t.use()
+		return t
 
-	def batch_feature(self, x,t):
+	def batch_feature(self, x):
 		if x is None:
 			x=Tensor.context
 

@@ -5,6 +5,7 @@ from chainer.links import caffe
 from chainer import computational_graph as c
 from deel.tensor import *
 from deel.network import *
+import chainer.serializers as cs
 import copy
 
 from deel import *
@@ -54,10 +55,9 @@ class NetworkInNetwork(ImageNet):
 		if Deel.gpu>=0:
 			self.func.to_gpu()
 
-		Deel.optimizer_lr=0.01
 
 		if optimizer is None:
-			self.optimizer = optimizers.MomentumSGD(Deel.optimizer_lr, momentum=0.9)
+			self.optimizer = optimizers.Adam()
 		self.optimizer.setup(self.func)
 
 
@@ -77,14 +77,13 @@ class NetworkInNetwork(ImageNet):
 		
 		return self.t
 	def save(self,filename):
-		cs.save_hdf5(filename,self.model.copy().to_cpu())
+		cs.save_hdf5(filename,self.func.copy().to_cpu())
 
 
 	def backprop(self,t,distill=False):
 		x=Tensor.context
 
 
-		self.optimizer.lr = Deel.optimizer_lr
 
 		self.optimizer.zero_grads()
 		if distill:
