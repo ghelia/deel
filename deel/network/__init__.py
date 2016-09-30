@@ -112,8 +112,8 @@ def filter(image,flip=False,center=True):
 	crop = 256-ImageNet.in_size
 	x = crop/2
 	y = crop/2
-	w = 256-crop/2-x
-	h = 256-crop/2-y
+	w = 256-crop/2-x-1
+	h = 256-crop/2-y-1
 	image -= ImageNet.mean_image[:,y:y+h, x:x+w].astype(xp.float32)
 	image = image.reshape((1,) + image.shape)
 
