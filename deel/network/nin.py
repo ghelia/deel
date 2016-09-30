@@ -34,10 +34,13 @@ import deel.model.nin
 
 
 class NetworkInNetwork(ImageNet):
-	def __init__(self,mean='misc/ilsvrc_2012_mean.npy',labels='data/labels.txt',optimizer=None):
+	def __init__(self,modelpath=None,mean='misc/ilsvrc_2012_mean.npy',labels='data/labels.txt',optimizer=None):
 		super(NetworkInNetwork,self).__init__('NetworkInNetwork',in_size=227)
 
 		self.func = model.nin.NIN()
+		if modelpath is not None:
+			cs.load_hdf5("misc/"+modelpath,self.func)
+
 		self.graph_generated=None
 
 		xp = Deel.xp
@@ -69,13 +72,21 @@ class NetworkInNetwork(ImageNet):
 		if x is None:
 			x=Tensor.context
 
-		_x = x.content
-		result = self.forward(_x)
-		self.t.content=result
-		self.t.owner=self
-		self.t.use()
+		image = x.value
+		self.x_batch = image
+		xp = Deel.xp
+		x_data = xp.asarray(self.x_batch)
 		
-		return self.t
+		x = chainer.Variable(x_data, volatile=True)
+		score = self.forward(x)
+		
+		score = F.softmax(score)
+
+		score = Variable(score.data) #Unchain 
+		t = ChainerTensor(score)
+		t.owner=self
+		t.use()
+		return t
 	def save(self,filename):
 		cs.save_hdf5(filename,self.func.copy().to_cpu())
 
