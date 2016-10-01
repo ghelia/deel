@@ -41,6 +41,23 @@ def Input(x):
 
 	return t
 
+def concat(x,y,train='on'):
+	xdim = 1
+	x = x.copy()
+	y = y.copy()
+	for n in x.shape:
+		xdim *= n
+	if len(x.shape)>1:
+		x = np.reshape(x,xdim)
+	ydim=1
+	for n in y.shape:
+		ydim *= n
+	if len(y.shape)>1:
+		y = np.reshape(y,ydim)
+	z = np.r_[x,y]
+
+	return z
+
 
 
 
@@ -266,8 +283,12 @@ def train_loop():
 		volatile = 'off' if train else 'on'
 		#volatile='on'
 
-		_ax = Deel.xp.asarray(inp[0])
-		_at = Deel.xp.asarray(inp[1])
+		if BatchTrainer.minibatch:
+			_ax = Deel.xp.asarray(inp[0])
+			_at = Deel.xp.asarray(inp[1])
+		else:
+			_ax = Deel.xp.asarray(inp[0][0])
+			_at = Deel.xp.asarray(inp[1][0])
 
 		if Deel.defferedTuning:
 			_x =Variable(_ax, volatile='on')
@@ -320,9 +341,10 @@ def isImageFile(path):
 	return False
 
 
-def InputBatch(train='data/train.txt',val='data/test.txt'):
+def InputBatch(train='data/train.txt',val='data/test.txt',minibatch=True):
 	Deel.train=train
 	Deel.val = val
+	BatchTrainer.minibatch=minibatch
 
 	root, ext = os.path.splitext(train)
 	if ext==".txt":

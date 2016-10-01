@@ -58,10 +58,13 @@ class FasterRCNN(chainer.Chain):
         pool5 = roi_pooling_2d(self.trunk.feature, rois, 7, 7, 0.0625)
         fc6 = F.relu(self.fc6(pool5))
         fc7 = F.relu(self.fc7(fc6))
-        self.scores = F.softmax(self.cls_score(fc7))
+        self.score_fc7 = self.cls_score(fc7)
+        self.scores = F.softmax(self.score_fc7)
+        #print "score",self.score_fc7.shape
 
         box_deltas = self.bbox_pred(fc7).data
-        print "delta",box_deltas.shape
+        self.deltas = box_deltas
+        #print "box_delta",box_deltas.shape
         pred_boxes = bbox_transform_inv(boxes, box_deltas, self.gpu)
         self.pred_boxes = clip_boxes(pred_boxes, im_info[0][:2], self.gpu)
 

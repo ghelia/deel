@@ -9,6 +9,7 @@ import numpy as np
 from deel import *
 from deel.tensor import *
 from deel.network import *
+from deel.model import *
 
 CLASSES = ('__background__',
 		   'aeroplane', 'bicycle', 'bird', 'boat',
@@ -144,6 +145,22 @@ class FasterRCNN(ImageNet):
 							in_size=self.in_size)
 		t.use()
 		return t
+
+	def feature(self,x=None):
+		if x is None:
+			x=Tensor.context
+
+
+		#if not isinstance(x,ImageTensor):
+		#	x=self.Input(x)
+
+		xp = Deel.xp
+		x_data = xp.asarray([x.value])
+		xv = chainer.Variable(x_data, volatile=True)
+
+		h, w = xv.data.shape[2:]
+		cls_score, bbox_pred  = self.func(xv,np.array([[h, w, 1.0]]))
+		return self.func.score_fc7,self.func.deltas
 
 	def classify(self,x=None):
 		if x is None:
