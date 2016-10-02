@@ -155,7 +155,7 @@ class FasterRCNN(ImageNet):
 		#	x=self.Input(x)
 
 		xp = Deel.xp
-		x_data = xp.asarray([x.value])
+		x_data = xp.asarray([x.value],dtype=xp.float32)
 		xv = chainer.Variable(x_data, volatile=True)
 
 		h, w = xv.data.shape[2:]

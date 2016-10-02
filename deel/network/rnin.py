@@ -75,7 +75,7 @@ class RegionalNetworkInNetwork(ImageNet):
 		image = x.value
 		self.x_batch = image
 		xp = Deel.xp
-		x_data = xp.asarray(self.x_batch)
+		x_data = xp.asarray(self.x_batch,dtype=Deel.xp.float32)
 		
 		x = chainer.Variable(x_data, volatile='off' if train else 'on')
 		score = self.forward(x)
@@ -88,7 +88,8 @@ class RegionalNetworkInNetwork(ImageNet):
 		t.use()
 		return t
 	def save(self,filename):
-		cs.save_hdf5(filename,self.func.copy().to_cpu())
+		#cs.save_hdf5(filename,self.func.copy().to_cpu())
+		cs.save_hdf5(filename,self.func.copy())
 
 
 	def backprop(self,t,distill=False):
@@ -98,7 +99,7 @@ class RegionalNetworkInNetwork(ImageNet):
 
 		self.optimizer.zero_grads()
 		if distill:
-			t = chainer.Variable(Deel.xp.asarray([t.content.data]), volatile='off')
+			t = chainer.Variable(Deel.xp.asarray([t.content.data],dtype=Deel.xp.float32), volatile='off')
 			loss = self.func.getLossDistill(x.content,t)
 			accuracy = 0.0
 		else:

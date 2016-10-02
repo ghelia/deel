@@ -5,7 +5,7 @@ from deel.commands import *
 from deel.network.googlenet import *
 from deel.network.fasterRCNN import FasterRCNN
 
-deel = Deel(gpu=-1)
+deel = Deel(gpu=0)
 Deel.epoch=10000
 student = RegionalNetworkInNetwork(labels="data/labels.txt")
 teacher = FasterRCNN()
@@ -21,7 +21,7 @@ def workout(x,t):
 	t = concat(t,box_deltas)
 	t = concat(t,np.zeros(21*4*num_of_dummys))
 	t = ChainerTensor(chainer.Variable(Deel.xp.asarray(t,dtype=np.float32), volatile='off'))
-	x = ChainerTensor(chainer.Variable(Deel.xp.asarray([x.value]), volatile='off'))
+	x = ChainerTensor(chainer.Variable(Deel.xp.asarray([x.value],dtype=np.float32), volatile='off'))
 	student.classify(x,train=True)	
 	return student.backprop(t,distill=True)
 

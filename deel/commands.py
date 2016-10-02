@@ -43,18 +43,24 @@ def Input(x):
 
 def concat(x,y,train='on'):
 	xdim = 1
+	xp=Deel.xp
+	if Deel.gpu>=0:
+		x = cuda.to_cpu(x)
+		y= cuda.to_cpu(y)
 	x = x.copy()
 	y = y.copy()
 	for n in x.shape:
 		xdim *= n
 	if len(x.shape)>1:
-		x = np.reshape(x,xdim)
+		x = x.reshape((xdim,))
 	ydim=1
 	for n in y.shape:
 		ydim *= n
 	if len(y.shape)>1:
-		y = np.reshape(y,ydim)
+		y = y.reshape((ydim,))
 	z = np.r_[x,y]
+
+	z = xp.asarray(z,dtype=xp.float32)
 
 	return z
 
