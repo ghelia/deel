@@ -40,17 +40,17 @@ def getDim(shape):
 def LoadCaffeModel(path):
 	print "Loading %s"%path
 	root, ext = os.path.splitext(path)
-	cashpath = 'cache/'+hashlib.sha224(root).hexdigest()+".pkl"
+	cachepath = 'cache/'+hashlib.sha224(root).hexdigest()+".pkl"
 	if path in __Model_cache:
 		print "Cache hit"
 		func = __Model_cache[path]
-	if os.path.exists(cashpath):
-		func = pickle.load(open(cashpath,'rb'))
+	if os.path.exists(cachepath):
+		func = pickle.load(open(cachepath,'rb'))
 	else:
 		print "Converting from %s"%path
 		#func = caffe.CaffeFunction('misc/'+path)
 		func = CaffeFunction('misc/'+path)
-		pickle.dump(func, open(cashpath, 'wb'))
+		pickle.dump(func, open(cachepath, 'wb'))
 	__Model_cache[path]=func
 	if Deel.gpu>=0:
 		func = func.to_gpu(Deel.gpu)

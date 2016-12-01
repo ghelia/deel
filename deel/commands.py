@@ -262,7 +262,6 @@ def log_result():
 				val_accuracy=0
 				print(json.dumps({'type': 'val', 'iteration': train_count,
 								  'error': mean_error, 'loss': mean_loss}))
-import cupy.cuda.runtime as rt
 def train_loop():
 	global workout
 	train=True

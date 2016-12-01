@@ -9,11 +9,11 @@ import time
 deel = Deel()
 BatchTrainer.batchsize=100
 
-CNN = ResNet152(modelpath='misc/model_resnet_fc1000.hdf5',
-			labels='data/labels.txt')
-
-#CNN = GoogLeNet(modelpath='model_google_cpu2.hdf5',
+#CNN = ResNet152(modelpath='misc/model_resnet_fc1000.hdf5',
 #			labels='data/labels.txt')
+
+CNN = GoogLeNet(modelpath='model_google_cpu.hdf5',
+			labels='data/labels.txt')
 
 import pickle
 
