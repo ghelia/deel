@@ -12,8 +12,7 @@ cam = cv2.VideoCapture(0)
 
 while True:
 	ret, img = cam.read()  
-	img =cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-	CNN.Input(img)
+	CNN.Input(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 	CNN.classify()
 	ShowLabels()
 
