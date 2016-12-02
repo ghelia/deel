@@ -24,7 +24,6 @@ import hashlib
 import datetime
 import sys
 import random
-import cv2
 
 
 """Input something to context tensor"""
@@ -110,7 +109,8 @@ def batch_read_and_feed(batch):
 	for data in batch:
 		path,label = data
 		#img = read_image (path, False, True)
-		img = filter(np.asarray(cv2.imread(path,cv2.IMREAD_COLOR)),flip=True,center=False)
+		img = Image.open(x).convert('RGB')
+		img = filter(np.asarray(img),flip=True,center=False)
 		if img is not None:
 			x_batch[i] = img
 			y_batch[i] = label

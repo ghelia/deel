@@ -24,7 +24,6 @@ import hashlib
 import datetime
 import sys
 import random
-import cv2
 
 __Model_cache={}
 
@@ -181,8 +180,8 @@ class ImageNet(Network):
 	def Input(self,x):
 		xp = Deel.xp
 		if isinstance(x,str):
-			#img = Image.open(x).convert('RGB')
-			img = cv2.imread(x)
+			img = Image.open(x).convert('RGB')
+			#img = cv2.imread(x)
 			t = ImageTensor(img,filtered_image=filter(np.asarray(img)),
 							in_size=self.in_size,path=x)
 		elif hasattr(x,'_Image__transformer'):
