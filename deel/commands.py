@@ -109,7 +109,7 @@ def batch_read_and_feed(batch):
 	for data in batch:
 		path,label = data
 		#img = read_image (path, False, True)
-		img = Image.open(x).convert('RGB')
+		img = Image.open(path).convert('RGB')
 		img = filter(np.asarray(img),flip=True,center=False)
 		if img is not None:
 			x_batch[i] = img
@@ -167,7 +167,8 @@ def feed_data():
 			count += 1
 			if count % 3000 == 0:
 				print "checkout"
-				checkout()
+				if checkout:
+					checkout()
 				BatchTrainer.data_q.put('val')
 				j = 0
 				#val_list=train_list[idx:idx+val_batchsize]
@@ -380,7 +381,7 @@ def InputBatch(train='data/train.txt',val='data/test.txt',minibatch=True):
 
 
 
-def BatchTrain(callback,callback2):
+def BatchTrain(callback,callback2=None):
 	global workout,checkout
 	trainer = BatchTrainer()
 
