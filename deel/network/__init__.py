@@ -113,6 +113,11 @@ def filter(image,flip=False,center=True):
 	y = crop/2
 	w = 256-crop/2-x
 	h = 256-crop/2-y
+	if w != image.shape[2]:
+		w = image.shape[2]
+	if h != image.shape[1]:
+		h = image.shape[1]
+
 	image -= ImageNet.mean_image[:,y:y+h, x:x+w].astype(xp.float32)
 	image = image.reshape((1,) + image.shape)
 
@@ -329,105 +334,7 @@ def _sum_sqnorm(arr):
 Follings Class 'Alexnet' is same code of AlexNet in alexnet.py  
 This is hot fix for a book "Hajimete no Shinso Gakusyu"
 """
-class Alexnet(ImageNet):
-	def __init__(self, model='bvlc_alexnet.caffemodel',mean='misc/ilsvrc_2012_mean.npy',labels='misc/labels.txt',optimizer=None):
-		super(Alexnet,self).__init__('Alexnet',in_size=227)
 
+import alexnet
 
-		self.func = LoadCaffeModel(model)
-		self.labels = np.loadtxt(labels, str, delimiter="\t")
-
-		if Deel.gpu >= 0:
-			cuda.check_cuda_available()
-
-
-		if Deel.gpu >= 0:
-			cuda.get_device(self.gpu).use()
-			self.func.to_gpu()
-
-		#ImageNet.mean_image = np.load(mean)
-		mean_image = np.load(mean)
-		ImageNet.mean_image=mean_image
-		
-		cropwidth = 256 - self.in_size
-		start = cropwidth // 2
-		stop = start + self.in_size
-		self.mean_image = mean_image[:, start:stop, start:stop].copy()
-		#del self.func.layers[15:23] 
-		#self.outname = 'pool5'
-
-		self.batchsize = 1
-		self.x_batch = np.ndarray((self.batchsize, 3, self.in_size, self.in_size), dtype=np.float32)
-
-	def forward(self, x,layer='fc8'):
-		y, = self.func(inputs={'data': x}, outputs=[layer], train=False)
-		return y
-				
-	def predict(self, x,layer='fc8'):
-		y, = self.func(inputs={'data': x}, outputs=[layer], train=False)
-		return F.softmax(y)
-
-
-	def classify(self,x=None):
-		if x is None:
-			x=Tensor.context
-
-		if not isinstance(x,ImageTensor):
-			x=self.Input(x)
-
-		_x = Variable(x.value, volatile=True)
-		result = self.predict(_x)
-		result = Variable(result.data) #Unchain 
-		t = ChainerTensor(result)
-		t.owner=self
-		t.use()
-
-		return t
-
-	def layerDim(self, layer='fc8'):
-		image = self.Input('deel.png').value
-		self.x_batch[0] = image
-		xp = Deel.xp
-		x_data = xp.asarray(self.x_batch)
-		x = chainer.Variable(x_data, volatile=True)
-
-		y, = self.func(inputs={'data': x}, outputs=[layer], train=False)
-
-		return y.data.shape
-				
-
-
-	def feature(self, x,layer=u'pool5'):
-		if x is None:
-			x=Tensor.context
-		if not isinstance(x,ImageTensor):
-			x=self.Input(x)
-
-		image = x.value
-
-		self.x_batch[0] = image
-		xp = Deel.xp
-		x_data = xp.asarray(self.x_batch)
-
-		if Deel.gpu >= 0:
-			x_data=cuda.to_gpu(x_data)
-		
-		x = chainer.Variable(x_data, volatile=True)
-		score = self.forward(x,layer=layer)
-
-		if Deel.gpu >= 0:
-			score=cuda.to_cpu(score.data)
-			dim = getDim(score.shape)
-			score = score.reshape(dim)
-		else:
-			dim = getDim(score.data.shape)
-			score = score.data.reshape(dim)
-		
-		score = chainer.Variable(score*255.0, volatile=True)
-
-		t = ChainerTensor(score)
-		t.owner=self
-		t.use()
-
-
-		return t
+Alexnet = alexnet.AlexNet
