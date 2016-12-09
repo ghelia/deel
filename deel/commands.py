@@ -109,7 +109,7 @@ def batch_read_and_feed(batch):
 	for data in batch:
 		path,label = data
 		#img = read_image (path, False, True)
-		img = Image.open(x).convert('RGB')
+		img = Image.open(path).convert('RGB')
 		img = filter(np.asarray(img),flip=True,center=False)
 		if img is not None:
 			x_batch[i] = img
