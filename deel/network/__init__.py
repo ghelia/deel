@@ -331,10 +331,17 @@ def _sum_sqnorm(arr):
 
 
 """
-Follings Class 'Alexnet' is same code of AlexNet in alexnet.py  
-This is hot fix for a book "Hajimete no Shinso Gakusyu"
+Followings are hot fix for a book "Hajimete no Shinso Gakusyu"
 """
 
 import alexnet
 
 Alexnet = alexnet.AlexNet
+
+import nin
+
+NetworkInNetwork = nin.NetworkInNetwork
+
+import googlenet
+
+GoogLeNet = googlenet.GoogLeNet
