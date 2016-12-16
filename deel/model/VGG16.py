@@ -9,7 +9,6 @@ import chainer.links as L
 
 
 class VGG16(chainer.Chain):
-
     def __init__(self, train=False):
         super(VGG16, self).__init__()
         self.trunk = [

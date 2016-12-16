@@ -16,7 +16,6 @@ import chainer.links as L
 
 
 class FasterRCNN(chainer.Chain):
-
     def __init__(self, gpu=-1, trunk=VGG16):
         super(FasterRCNN, self).__init__()
         self.add_link('trunk', trunk())
@@ -60,11 +59,11 @@ class FasterRCNN(chainer.Chain):
         fc7 = F.relu(self.fc7(fc6))
         self.score_fc7 = self.cls_score(fc7)
         self.scores = F.softmax(self.score_fc7)
-        #print "score",self.score_fc7.shape
+        # print "score",self.score_fc7.shape
 
         box_deltas = self.bbox_pred(fc7).data
         self.deltas = box_deltas
-        #print "box_delta",box_deltas.shape
+        # print "box_delta",box_deltas.shape
         pred_boxes = bbox_transform_inv(boxes, box_deltas, self.gpu)
         self.pred_boxes = clip_boxes(pred_boxes, im_info[0][:2], self.gpu)
 
@@ -74,4 +73,3 @@ class FasterRCNN(chainer.Chain):
             return None
         else:
             return self.scores, self.pred_boxes
-

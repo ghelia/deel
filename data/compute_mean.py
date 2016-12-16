@@ -7,7 +7,6 @@ import numpy
 from PIL import Image
 import pickle
 
-
 parser = argparse.ArgumentParser(description='Compute images mean array')
 parser.add_argument('dataset', help='Path to training image-label list file')
 parser.add_argument('--root', '-r', default='.',

@@ -6,7 +6,6 @@ import chainer.links as L
 
 
 class NIN(chainer.Chain):
-
     """Network-in-Network example model."""
 
     insize = 227
@@ -51,13 +50,13 @@ class NIN(chainer.Chain):
 
         return h
 
-    def getLossDistill(self,x,t):
+    def getLossDistill(self, x, t):
         self.loss = F.mean_squared_error(x, t)
 
         return self.loss
 
-    def getLoss(self,x,t):
+    def getLoss(self, x, t):
         self.loss = F.softmax_cross_entropy(x, t)
         self.accuracy = F.accuracy(x, t)
 
-        return self.loss,self.accuracy
+        return self.loss, self.accuracy

@@ -4,20 +4,19 @@ import chainer.links as L
 
 
 class GoogLeNet(chainer.Chain):
-
     insize = 224
 
     def __init__(self):
         super(GoogLeNet, self).__init__(
-            conv1=L.Convolution2D(3,  64, 7, stride=2, pad=3),
-            conv2_reduce=L.Convolution2D(64,  64, 1),
+            conv1=L.Convolution2D(3, 64, 7, stride=2, pad=3),
+            conv2_reduce=L.Convolution2D(64, 64, 1),
             conv2=L.Convolution2D(64, 192, 3, stride=1, pad=1),
-            inc3a=L.Inception(192,  64,  96, 128, 16,  32,  32),
-            inc3b=L.Inception(256, 128, 128, 192, 32,  96,  64),
-            inc4a=L.Inception(480, 192,  96, 208, 16,  48,  64),
-            inc4b=L.Inception(512, 160, 112, 224, 24,  64,  64),
-            inc4c=L.Inception(512, 128, 128, 256, 24,  64,  64),
-            inc4d=L.Inception(512, 112, 144, 288, 32,  64,  64),
+            inc3a=L.Inception(192, 64, 96, 128, 16, 32, 32),
+            inc3b=L.Inception(256, 128, 128, 192, 32, 96, 64),
+            inc4a=L.Inception(480, 192, 96, 208, 16, 48, 64),
+            inc4b=L.Inception(512, 160, 112, 224, 24, 64, 64),
+            inc4c=L.Inception(512, 128, 128, 256, 24, 64, 64),
+            inc4d=L.Inception(512, 112, 144, 288, 32, 64, 64),
             inc4e=L.Inception(528, 256, 160, 320, 32, 128, 128),
             inc5a=L.Inception(832, 256, 160, 320, 32, 128, 128),
             inc5b=L.Inception(832, 384, 192, 384, 48, 128, 128),
@@ -113,7 +112,7 @@ class GoogLeNet(chainer.Chain):
         l = F.relu(self.loss2_fc1(l))
         l = self.loss2_fc2(l)
         loss2 = l
-        
+
         h = self.inc4e(h)
         h = F.max_pooling_2d(h, 3, stride=2)
         h = self.inc5a(h)
@@ -123,4 +122,4 @@ class GoogLeNet(chainer.Chain):
         h = self.loss3_fc(F.dropout(h, 0.4, train=self.train))
         loss3 = h
 
-        return loss1,loss2,loss3
+        return loss1, loss2, loss3
