@@ -52,7 +52,8 @@ class NIN(chainer.Chain):
         return h
 
     def getLossDistill(self,x,t):
-        self.loss = F.mean_squared_error(x, t)
+        _t = chainer.Variable(t.data, volatile='off')
+        self.loss = F.mean_squared_error(x, _t)
 
         return self.loss
 
