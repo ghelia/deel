@@ -7,7 +7,7 @@ from chainer import computational_graph as c
 from deel.tensor import *
 import copy
 
-from deel import *
+from deel.deel import *
 import chainer
 import json
 import os
@@ -37,16 +37,16 @@ def getDim(shape):
 	return dim
 
 def LoadCaffeModel(path):
-	print "Loading %s"%path
+	print("Loading %s"%path)
 	root, ext = os.path.splitext(path)
-	cachepath = 'cache/'+hashlib.sha224(root).hexdigest()+".pkl"
+	cachepath = 'cache/'+hashlib.sha224(root.encode('utf-8')).hexdigest()+".pkl"
 	if path in __Model_cache:
-		print "Cache hit"
+		print("Cache hit")
 		func = __Model_cache[path]
 	if os.path.exists(cachepath):
 		func = pickle.load(open(cachepath,'rb'))
 	else:
-		print "Converting from %s"%path
+		print("Converting from %s"%path)
 		#func = caffe.CaffeFunction('misc/'+path)
 		func = CaffeFunction('misc/'+path)
 		pickle.dump(func, open(cachepath, 'wb'))
@@ -93,11 +93,11 @@ def filter(image,flip=False,center=True):
 	image_w, image_h = image_shape
 	h, w,d = image.shape
 	if w > h:
-	    shape = (image_w * w / h, image_h)
+	    shape = (int(image_w * w / h), image_h)
 	else:
-	    shape = (image_w, image_h * h / w)
-	x = (shape[0] - image_w) / 2
-	y = (shape[1] - image_h) / 2
+	    shape = (image_w, int(image_h * h / w))
+	x = int((shape[0] - image_w) / 2)
+	y = int((shape[1] - image_h) / 2)
 	resized_img = Image.fromarray(np.uint8(image))
 	resized_img=resized_img.resize(shape)
 	if not center:
@@ -109,10 +109,10 @@ def filter(image,flip=False,center=True):
 		image = image[:, :, ::-1]
 	image = image.transpose(2,0,1)
 	crop = 256-ImageNet.in_size
-	x = crop/2
-	y = crop/2
-	w = 256-crop/2-x
-	h = 256-crop/2-y
+	x = int(crop/2)
+	y = int(crop/2)
+	w = 256-int(crop/2)-x
+	h = 256-int(crop/2)-y
 	if w != image.shape[2]:
 		w = image.shape[2]
 	if h != image.shape[1]:
@@ -199,11 +199,11 @@ class ImageNet(Network):
 		return t
 	def ShowLayers(self):
 		for layer in self.func.layers:
-			print layer[0],
+			print(layer[0],)
 			if hasattr(self.func,layer[0]):
-				print self.func[layer[0]].W.data.shape
+				print(self.func[layer[0]].W.data.shape)
 			else:
-				print " "
+				print(" ")
 
 
 
@@ -222,7 +222,7 @@ class LSTM(Network):
 		n_vocab = len(vocab)
 		super(LSTM,self).__init__('LSTM')
 
-		self.func = model.lstm.RNNLM(n_input_units=n_input_units,n_vocab=n_vocab,n_units=n_units)
+		self.func = deel.model.lstm.RNNLM(n_input_units=n_input_units,n_vocab=n_vocab,n_units=n_units)
 		self.func.compute_accuracy = False 
 		for param in self.func.params():
 			data = param.data
@@ -334,14 +334,8 @@ def _sum_sqnorm(arr):
 Followings are hot fix for a book "Hajimete no Shinso Gakusyu"
 """
 
-import alexnet
+from deel.network.alexnet import AlexNet
 
-Alexnet = alexnet.AlexNet
+from deel.network.nin import NetworkInNetwork
 
-import nin
-
-NetworkInNetwork = nin.NetworkInNetwork
-
-import googlenet
-
-GoogLeNet = googlenet.GoogLeNet
+from deel.network.googlenet import GoogLeNet

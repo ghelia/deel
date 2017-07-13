@@ -11,7 +11,7 @@ install_requires = [
 ]
 setup(
     name = "deel",
-    version = "0.0.4.5",
+    version = "0.0.4.6",
     author = "UEI corporation",
     author_email="info@uei.co.jp",
     description = ("Deel; A High level deep learning description language"),

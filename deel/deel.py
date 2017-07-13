@@ -5,7 +5,7 @@ from chainer import computational_graph
 from chainer import cuda
 from chainer import optimizers
 from chainer import serializers
-from tensor import *
+from .tensor import *
 import json
 import os
 import multiprocessing

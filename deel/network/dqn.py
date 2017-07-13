@@ -7,7 +7,7 @@ from deel.tensor import *
 from deel.network import *
 import copy
 
-from deel import *
+from deel.deel import *
 import chainer
 import json
 import os
@@ -45,11 +45,11 @@ class DQN(Network):
 
 		self.image_feature_dim = getDim(given_dim)+depth_image_dim
 
-		print "shape:",self.image_feature_dim
+		print("shape:",self.image_feature_dim)
 
 		self.time = 0
 		self.epsilon = 1.0  # Initial exploratoin rate
-		self.func = model.q_net.QNet(Deel.gpu,self.actions,self.image_feature_dim)
+		self.func = deel.model.q_net.QNet(Deel.gpu,self.actions,self.image_feature_dim)
 
 	def actionAndLearn(self,x=None):
 		if x is None:
@@ -120,10 +120,10 @@ class DQN(Network):
 					self.epsilon = self.min_eps
 				eps = self.epsilon
 			else:  # Initial Exploation Phase
-				print "Initial Exploration : %d/%d steps" % (self.time, self.func.initial_exploration)
+				print("Initial Exploration : %d/%d steps" % (self.time, self.func.initial_exploration))
 				eps = 1.0
 		else:  # Evaluation
-			print "Policy is Frozen"
+			print("Policy is Frozen")
 			eps = 0.05
 
 		# Generate an Action by e-greedy action selection
@@ -144,7 +144,7 @@ class DQN(Network):
 
 		# Target model update
 		if self.func.initial_exploration < self.time and np.mod(self.time, self.func.target_model_update_freq) == 0:
-			print 'Model Updated'
+			print('Model Updated')
 			self.func.target_model_update()
 
 		# Simple text based visualization
@@ -152,8 +152,8 @@ class DQN(Network):
 			q_max = np.max(q_now.get())
 		else:
 			q_max = np.max(q_now)
-		print 'Step %d/ACT %d/R %.1f/EPS %.6f/Q_max %3f' % (
-			self.time, self.func.action_to_index(action), reward, eps, q_max)
+		print('Step %d/ACT %d/R %.1f/EPS %.6f/Q_max %3f' % (
+			self.time, self.func.action_to_index(action), reward, eps, q_max))
 
 		# Updates for next step
 		self.last_observation = obs_array
@@ -169,7 +169,7 @@ class DQN(Network):
 
 	def end(self,x):
 		reward = self.reward
-		print 'episode finished: REWARD %.1f / EPSILON %.5f' % (reward, self.epsilon)
+		print('episode finished: REWARD %.1f / EPSILON %.5f' % (reward, self.epsilon))
 
 		# Learning Phase
 		if self.policyFrozen is False:  # Learning ON/OFF
@@ -179,7 +179,7 @@ class DQN(Network):
 
 		# Target model update
 		if self.func.initial_exploration < self.time and np.mod(self.time, self.func.target_model_update_freq) == 0:
-			print 'Model Updated'
+			print('Model Updated')
 			self.func.target_model_update()
 
 		# Time count

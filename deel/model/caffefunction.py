@@ -144,7 +144,7 @@ class CaffeFunction(link.Chain):
 
 		if net.layer:
 			for layer in net.layer:
-				print layer.name,layer.type
+				print(layer.name,layer.type)
 				meth = _type_to_method.get(layer.type)
 				if meth:
 					meth(self, layer)
@@ -154,7 +154,7 @@ class CaffeFunction(link.Chain):
 						'support %s layer' % (layer.name, layer.type))
 		else:  # v1 format
 			for layer in net.layers:
-				print layer.name,layer.type
+				print(layer.name,layer.type)
 				meth = _oldname_to_method.get(layer.type)
 				if meth:
 					meth(self, layer)

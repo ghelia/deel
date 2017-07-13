@@ -5,9 +5,9 @@ from chainer import computational_graph
 from chainer import cuda
 from chainer import optimizers
 from chainer import serializers
-from tensor import *
-from network import *
-from deel import *
+from .tensor import *
+from .network import *
+from .deel import *
 import json
 import os
 import multiprocessing
@@ -24,6 +24,7 @@ import hashlib
 import datetime
 import sys
 import random
+from functools import cmp_to_key
 
 
 """Input something to context tensor"""
@@ -36,7 +37,7 @@ def Input(x):
 			t = ImageTensor(img)
 			t.use()
 		elif ext=='.txt':
-			print "this is txt"
+			print("this is txt")
 
 	return t
 
@@ -93,8 +94,8 @@ def read_image(path, center=False, flip=False):
 		else:
 			return image
 	except ValueError:
-		print "---- Read_Image Value Error ----"
-		print path
+		print("---- Read_Image Value Error ----")
+		print(path)
 
 		return None
 
@@ -166,7 +167,7 @@ def feed_data():
 
 			count += 1
 			if count % 3000 == 0:
-				print "checkout"
+				print("checkout")
 				if checkout:
 					checkout()
 				BatchTrainer.data_q.put('val')
@@ -246,7 +247,7 @@ def log_result():
 				train_cur_accuracy = 0
 		else:
 			val_count += val_batchsize
-			print "valc",val_count
+			print("valc",val_count)
 			duration = time.time() - val_begin_at
 			throughput = val_count / duration
 			print(
@@ -435,7 +436,7 @@ def Output(x=None,num_of_candidate=5):
 
 	out = x.output
 
-	out.sort(cmp=lambda a, b: cmp(a[0], b[0]), reverse=True)
+	out.sort(key=cmp_to_key(lambda a, b: ((a[0] > b[0]) - (a[0] < b[0]))), reverse=True)
 	for rank, (score, name) in enumerate(out[:num_of_candidate], start=1):
 		print('#%d | %s | %4.1f%%' % (rank, name, score * 100))
 

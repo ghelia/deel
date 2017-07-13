@@ -79,7 +79,7 @@ while True:
 
 	labels = GetLabels()
 	if labels[0][1] == 'Band':
-		print 'BAND'
+		print('BAND')
 		cv2.imwrite('band.png',img)
 
 	cv2.imshow('cam', img)

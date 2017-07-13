@@ -16,7 +16,7 @@ CNN = CaffeNet(modelpath='EmotiW_VGG_S.caffemodel',in_size=228,
 import cv2
 cam = cv2.VideoCapture(0)  
 cnt=0
-print "start"
+print("start")
 import time
 while True:
 	ret, img = cam.read()  
@@ -25,7 +25,7 @@ while True:
 	#time.sleep(10)
 	ShowLabels()
 	if t.value[0][2]<0.5:
-		print "something happen ",int(t.value[0][2]*10)
+		print("something happen ",int(t.value[0][2]*10))
 		cv2.imwrite('img/face/{}.png'.format(cnt),img)
 		cnt+=1
 

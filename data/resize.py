@@ -8,7 +8,7 @@ import sys
 os.mkdir("resized")
 for imgpath in sys.argv: 
   target_shape = (256, 256)
-  print imgpath
+  print(imgpath)
   if imgpath.find('.jpg') == -1:
    continue
 
@@ -26,5 +26,5 @@ for imgpath in sys.argv:
   width_offset = (new_width - output_side_length) / 2
   cropped_img = resized_img[height_offset:height_offset + output_side_length,
   width_offset:width_offset + output_side_length]
-  print "write"
+  print("write")
   cv2.imwrite("resized/"+imgpath, cropped_img) 
