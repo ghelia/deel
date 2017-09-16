@@ -31,9 +31,10 @@ $ cd ..
 $ python test.py
 ```
 
-###Examples
+### Examples
 
-####CNN classifier 
+#### CNN classifier 
+
 ```python
 deel = Deel()
 
@@ -45,7 +46,8 @@ ShowLabels()
 
 ```
 
-####CNN trainer 
+#### CNN trainer 
+
 ```python
 nin = NetworkInNetwork()
 
@@ -59,7 +61,8 @@ def workout(x,t):
 BatchTrain(workout)
 ```
 
-####CNN classifier with OpenCV camera (you need OpenCV2) 
+#### CNN classifier with OpenCV camera (you need OpenCV2) 
+
 ```python
 import cv2 
 from deel import *
@@ -90,9 +93,8 @@ cv2.destroyAllWindows()
 
 ```
 
+#### CNN-DQN with Unity (using with https://github.com/wbap/ml-agent-for-unity)
 
-
-####CNN-DQN with Unity (using with https://github.com/wbap/ml-agent-for-unity)
 ```python
 from deel import *
 from deel.network import *
@@ -112,7 +114,8 @@ StartAgent(trainer)
 ```
 
 
-####ResNet Inferrence
+#### ResNet Inferrence
+
 ```python
 from deel import *
 from deel.network import *
@@ -129,7 +132,8 @@ ShowLabels()
 
 ```
 
-####ResNet Finetuning
+#### ResNet Finetuning
+
 ```python
 from deel import *
 from deel.network import *
