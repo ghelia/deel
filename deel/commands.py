@@ -307,7 +307,8 @@ def train_loop():
 		x = ChainerTensor(_x)
 		t = ChainerTensor(_t)
 
-		loss,accuracy = workout(x,t)
+		if train:
+			loss,accuracy = workout(x,t)
 
 
 		Deel.trainCount+=1
