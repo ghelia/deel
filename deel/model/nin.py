@@ -58,6 +58,8 @@ class NIN(chainer.Chain):
         return self.loss
 
     def getLoss(self,x,t):
+        if t._volatile=='on':
+            x = chainer.Variable(x.data,volatile=t._volatile)
         self.loss = F.softmax_cross_entropy(x, t)
         self.accuracy = F.accuracy(x, t)
 
