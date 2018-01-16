@@ -9,7 +9,7 @@ from deel.tensor import *
 from deel.network import *
 import copy
 
-from deel import *
+from deel.deel import *
 import deel.network
 import chainer
 import json

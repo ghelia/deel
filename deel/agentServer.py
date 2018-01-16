@@ -6,7 +6,7 @@ import msgpack
 import io
 from PIL import Image
 import threading
-from tensor import *
+from .tensor import *
 import numpy as np
 from chainer import Variable, FunctionSet, optimizers
 from PIL import ImageOps

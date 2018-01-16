@@ -8,7 +8,7 @@ from deel.network import *
 import chainer.serializers as cs
 import copy
 
-from deel import *
+from deel.deel import *
 import chainer
 import json
 import os
@@ -37,7 +37,7 @@ class NetworkInNetwork(ImageNet):
 	def __init__(self,modelpath=None,mean='misc/ilsvrc_2012_mean.npy',labels='data/labels.txt',optimizer=None):
 		super(NetworkInNetwork,self).__init__('NetworkInNetwork',in_size=227)
 
-		self.func = model.nin.NIN()
+		self.func = deel.model.nin.NIN()
 		if modelpath is not None:
 			cs.load_hdf5("misc/"+modelpath,self.func)
 
