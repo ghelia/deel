@@ -247,7 +247,6 @@ def log_result():
 				train_cur_accuracy = 0
 		else:
 			val_count += val_batchsize
-			print("valc",val_count)
 			duration = time.time() - val_begin_at
 			throughput = val_count / duration
 			print(
